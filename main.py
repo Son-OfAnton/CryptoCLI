@@ -4,13 +4,16 @@ Main CLI entry point for the crypto-stats application.
 import click
 from rich.console import Console
 import sys
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 from .api import api
 from .price import get_current_prices, get_prices_with_change
 from .utils.formatting import (
     console,
-    create_coin_list_table,
-    create_coin_detail_panel,
     print_error,
     print_success,
     print_warning
@@ -44,6 +47,32 @@ def price(coin_ids, currencies, detailed):
     else:
         # Otherwise use simple price endpoint
         get_current_prices(list(coin_ids), currencies_list)
+
+@cli.command()
+def config():
+    """
+    Display current configuration.
+    """
+    console.print("[bold]CryptoStats CLI Configuration[/bold]\n")
+    
+    # Show API configuration
+    console.print("[cyan]API Configuration:[/cyan]")
+    api_url = os.getenv("COINGECKO_BASE_URL", "https://api.coingecko.com/api/v3")
+    console.print(f"API URL: {api_url}")
+    
+    # Show if API key is set
+    api_key = os.getenv("COINGECKO_API_KEY")
+    if api_key:
+        console.print("API Key: [green]Set[/green]")
+    else:
+        console.print("API Key: [red]Not set[/red] (using free tier or mock mode)")
+    
+    # Show mock mode status
+    mock_mode = os.getenv("CRYPTO_STATS_MOCK", "false").lower() == "true" or not api_key
+    console.print(f"Mock Mode: {'[yellow]Enabled[/yellow]' if mock_mode else '[green]Disabled[/green]'}")
+    
+    # Show rate limiting info
+    console.print(f"\nRate Limiting: ~{api.rate_limit_wait:.1f} seconds between requests")
 
 if __name__ == '__main__':
     cli()
