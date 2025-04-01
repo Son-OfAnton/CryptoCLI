@@ -2,10 +2,17 @@ certifi==2025.1.31
 charset-normalizer==3.4.1
 click==8.1.8
 colorama==0.4.6
+coverage==7.8.0
+CryptoCLI==0.1.0
 idna==3.10
+iniconfig==2.1.0
 markdown-it-py==3.0.0
 mdurl==0.1.2
+packaging==24.2
+pluggy==1.5.0
 Pygments==2.19.1
+pytest==8.3.5
+pytest-cov==6.1.0
 python-dotenv==1.1.0
 requests==2.32.3
 rich==14.0.0
