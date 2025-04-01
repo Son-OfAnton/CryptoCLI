@@ -94,3 +94,80 @@ def setup_environment():
     # Restore original environment
     os.environ.clear()
     os.environ.update(original_env)
+
+@pytest.fixture
+def mock_multiple_crypto_price_response():
+    """Mock response for multiple cryptocurrencies in the simple/price endpoint"""
+    return {
+        "bitcoin": {
+            "usd": 57234.78
+        },
+        "ethereum": {
+            "usd": 2845.62
+        },
+        "litecoin": {
+            "usd": 156.92
+        },
+        "ripple": {
+            "usd": 0.58
+        },
+        "cardano": {
+            "usd": 0.45
+        }
+    }
+
+@pytest.fixture
+def mock_multiple_markets_response():
+    """Mock response for multiple cryptocurrencies in the markets endpoint"""
+    return [
+        {
+            "id": "bitcoin",
+            "symbol": "btc",
+            "name": "Bitcoin",
+            "current_price": 57234.78,
+            "market_cap": 1120300000000,
+            "market_cap_rank": 1,
+            "price_change_percentage_24h": -0.98,
+            "total_volume": 65432000000
+        },
+        {
+            "id": "ethereum",
+            "symbol": "eth",
+            "name": "Ethereum",
+            "current_price": 2845.62,
+            "market_cap": 345600000000,
+            "market_cap_rank": 2,
+            "price_change_percentage_24h": 1.25,
+            "total_volume": 23456000000
+        },
+        {
+            "id": "binancecoin",
+            "symbol": "bnb",
+            "name": "BNB",
+            "current_price": 598.34,
+            "market_cap": 92300000000,
+            "market_cap_rank": 3,
+            "price_change_percentage_24h": -2.15,
+            "total_volume": 1234567890
+        },
+        {
+            "id": "cardano",
+            "symbol": "ada",
+            "name": "Cardano",
+            "current_price": 0.45,
+            "market_cap": 15800000000,
+            "market_cap_rank": 8,
+            "price_change_percentage_24h": 1.05,
+            "total_volume": 589000000
+        },
+        {
+            "id": "solana",
+            "symbol": "sol",
+            "name": "Solana",
+            "current_price": 138.25,
+            "market_cap": 62400000000,
+            "market_cap_rank": 5,
+            "price_change_percentage_24h": 2.35,
+            "total_volume": 1765000000
+        }
+    ]
