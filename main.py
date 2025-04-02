@@ -1,6 +1,17 @@
 """
 Main CLI entry point for the crypto-stats application.
 """
+from .ohlc import get_ohlc_data, save_ohlc_data
+from .utils.formatting import (
+    console,
+    print_error,
+    print_success,
+    print_warning
+)
+from .search import search_cryptocurrencies
+from .history import get_historical_prices, DAY, WEEK, MONTH, YEAR, save_historical_data
+from .price import get_current_prices, get_prices_with_change
+from .api import api
 import click
 from rich.console import Console
 import sys
@@ -10,24 +21,16 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-from .api import api
-from .price import get_current_prices, get_prices_with_change
-from .history import get_historical_prices, DAY, WEEK, MONTH, YEAR, save_historical_data
-from .search import search_cryptocurrencies
-from .utils.formatting import (
-    console,
-    print_error,
-    print_success,
-    print_warning
-)
 
 DEFAULT_CURRENCY = "usd"
 DEFAULT_LIMIT = 10
+
 
 @click.group()
 def cli():
     """Cryptocurrency statistics from the CoinGecko API."""
     pass
+
 
 @cli.command()
 @click.argument('coin_ids', nargs=-1)
@@ -40,9 +43,9 @@ def price(coin_ids, currencies, detailed):
     if not coin_ids:
         print_error("Please specify at least one coin ID")
         return
-        
+
     currencies_list = currencies.split(',')
-    
+
     if detailed and len(currencies_list) == 1:
         # If detailed view is requested and only one currency, use markets endpoint
         get_prices_with_change(list(coin_ids), currencies_list[0])
@@ -50,31 +53,38 @@ def price(coin_ids, currencies, detailed):
         # Otherwise use simple price endpoint
         get_current_prices(list(coin_ids), currencies_list)
 
+
 @cli.command()
 def config():
     """
     Display current configuration.
     """
     console.print("[bold]CryptoStats CLI Configuration[/bold]\n")
-    
+
     # Show API configuration
     console.print("[cyan]API Configuration:[/cyan]")
-    api_url = os.getenv("COINGECKO_BASE_URL", "https://api.coingecko.com/api/v3")
+    api_url = os.getenv("COINGECKO_BASE_URL",
+                        "https://api.coingecko.com/api/v3")
     console.print(f"API URL: {api_url}")
-    
+
     # Show if API key is set
     api_key = os.getenv("COINGECKO_API_KEY")
     if api_key:
         console.print("API Key: [green]Set[/green]")
     else:
-        console.print("API Key: [red]Not set[/red] (using free tier or mock mode)")
-    
+        console.print(
+            "API Key: [red]Not set[/red] (using free tier or mock mode)")
+
     # Show mock mode status
-    mock_mode = os.getenv("CRYPTO_STATS_MOCK", "false").lower() == "true" or not api_key
-    console.print(f"Mock Mode: {'[yellow]Enabled[/yellow]' if mock_mode else '[green]Disabled[/green]'}")
-    
+    mock_mode = os.getenv("CRYPTO_STATS_MOCK",
+                          "false").lower() == "true" or not api_key
+    console.print(
+        f"Mock Mode: {'[yellow]Enabled[/yellow]' if mock_mode else '[green]Disabled[/green]'}")
+
     # Show rate limiting info
-    console.print(f"\nRate Limiting: ~{api.rate_limit_wait:.1f} seconds between requests")
+    console.print(
+        f"\nRate Limiting: ~{api.rate_limit_wait:.1f} seconds between requests")
+
 
 @cli.command()
 @click.argument('coin_id')
@@ -101,22 +111,24 @@ def history(coin_id, currency, period, days, save, output):
         days_to_fetch = YEAR
     elif period == 'custom':
         if days is None:
-            print_error("For custom period, you must specify the number of days using --days")
+            print_error(
+                "For custom period, you must specify the number of days using --days")
             return
         days_to_fetch = days
     else:
         days_to_fetch = WEEK  # Default
-    
+
     # Get historical data
     historical_data = get_historical_prices(
         coin_id=coin_id,
         vs_currency=currency,
         days=days_to_fetch
     )
-    
+
     # Save historical data if requested
     if save and historical_data:
         save_historical_data(historical_data, output)
+
 
 @cli.command()
 @click.argument('query')
@@ -125,7 +137,7 @@ def history(coin_id, currency, period, days, save, output):
 def search(query, limit):
     """
     Search for cryptocurrencies by name or symbol.
-    
+
     Examples:
         CryptoCLI search bitcoin
         CryptoCLI search eth
@@ -134,9 +146,45 @@ def search(query, limit):
     if not query:
         print_error("Please provide a search query")
         return
-    
+
     # Search for cryptocurrencies
     search_cryptocurrencies(query, limit=limit)
+
+
+@cli.command()
+@click.argument('coin_id')
+@click.option('--currency', '-c', default='usd',
+              help='Currency to get data in (e.g., usd, eur)')
+@click.option('--days', '-d', type=click.Choice(['1', '7', '14', '30', '90', '180', '365']),
+              default='7', help='Number of days of data to return')
+@click.option('--save', '-s', is_flag=True,
+              help='Save OHLC data to a JSON file')
+@click.option('--output', '-o', type=str, default=None,
+              help='Filename to save data to (requires --save)')
+def ohlc(coin_id, currency, days, save, output):
+    """
+    Get OHLC (Open, High, Low, Close) chart data for a specific coin.
+
+    Examples:
+        CryptoCLI ohlc bitcoin
+        CryptoCLI ohlc ethereum --currency eur
+        CryptoCLI ohlc solana --days 30
+        CryptoCLI ohlc cardano --days 90 --save
+    """
+    # Convert days to integer
+    days_int = int(days)
+
+    # Get OHLC data
+    ohlc_data = get_ohlc_data(
+        coin_id=coin_id,
+        vs_currency=currency,
+        days=days_int
+    )
+
+    # Save OHLC data if requested
+    if save and ohlc_data:
+        save_ohlc_data(ohlc_data, coin_id, currency, days_int, output)
+
 
 if __name__ == '__main__':
     cli()
