@@ -120,6 +120,53 @@ class CoinGeckoAPI:
         }
         return self._make_request(f"coins/{coin_id}", params)
     
+    def get_coin_market_chart(self, coin_id: str, vs_currency: str = 'usd', 
+                             days: int = 7, interval: str = 'daily') -> Dict[str, List]:
+        """
+        Get historical market data for a coin over time.
+        
+        Args:
+            coin_id: ID of the coin
+            vs_currency: Currency to get market data in
+            days: Number of days of data to return
+            interval: Data interval (only valid for data up to 90 days,
+                      options: daily, hourly, minutely)
+            
+        Returns:
+            Historical price, market cap, and volume data
+        """
+        params = {
+            "vs_currency": vs_currency,
+            "days": days
+        }
+        
+        # Only add interval for data up to 90 days
+        if days <= 90:
+            params["interval"] = interval
+            
+        return self._make_request(f"coins/{coin_id}/market_chart", params)
+    
+    def get_coin_market_chart_range(self, coin_id: str, vs_currency: str,
+                                   from_timestamp: int, to_timestamp: int) -> Dict[str, List]:
+        """
+        Get historical market data for a coin within a specific date range.
+        
+        Args:
+            coin_id: ID of the coin
+            vs_currency: Currency to get market data in
+            from_timestamp: From date in UNIX timestamp
+            to_timestamp: To date in UNIX timestamp
+            
+        Returns:
+            Historical price, market cap, and volume data
+        """
+        params = {
+            "vs_currency": vs_currency,
+            "from": from_timestamp,
+            "to": to_timestamp
+        }
+        return self._make_request(f"coins/{coin_id}/market_chart/range", params)
+    
     def get_trending_coins(self) -> Dict[str, List[Dict[str, Any]]]:
         """
         Get trending coins in the last 24 hours.

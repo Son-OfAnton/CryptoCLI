@@ -12,6 +12,7 @@ load_dotenv()
 
 from .api import api
 from .price import get_current_prices, get_prices_with_change
+from .history import get_historical_prices, DAY, WEEK, MONTH, YEAR, save_historical_data
 from .utils.formatting import (
     console,
     print_error,
@@ -73,6 +74,48 @@ def config():
     
     # Show rate limiting info
     console.print(f"\nRate Limiting: ~{api.rate_limit_wait:.1f} seconds between requests")
+
+@cli.command()
+@click.argument('coin_id')
+@click.option('--currency', '-c', default='usd',
+              help='Currency to get data in (e.g., usd, eur)')
+@click.option('--period', '-p', type=click.Choice(['day', 'week', 'month', 'year', 'custom']),
+              default='week', help='Time period for historical data')
+@click.option('--days', '-d', type=int, default=None,
+              help='Custom number of days (for custom period)')
+@click.option('--save', '-s', is_flag=True,
+              help='Save historical data to a JSON file')
+@click.option('--output', '-o', type=str, default=None,
+              help='Filename to save data to (requires --save)')
+def history(coin_id, currency, period, days, save, output):
+    """Get historical price data for a specific coin."""
+    # Determine the number of days based on period
+    if period == 'day':
+        days_to_fetch = DAY
+    elif period == 'week':
+        days_to_fetch = WEEK
+    elif period == 'month':
+        days_to_fetch = MONTH
+    elif period == 'year':
+        days_to_fetch = YEAR
+    elif period == 'custom':
+        if days is None:
+            print_error("For custom period, you must specify the number of days using --days")
+            return
+        days_to_fetch = days
+    else:
+        days_to_fetch = WEEK  # Default
+    
+    # Get historical data
+    historical_data = get_historical_prices(
+        coin_id=coin_id,
+        vs_currency=currency,
+        days=days_to_fetch
+    )
+    
+    # Save historical data if requested
+    if save and historical_data:
+        save_historical_data(historical_data, output)
 
 if __name__ == '__main__':
     cli()
