@@ -203,7 +203,7 @@ def ohlc(coin_id, currency, days, save, output):
 def token(contract_address, platform, currency, tickers, tickers_limit, save, output):
     """
     Get detailed data for a token by contract address.
-    
+
     Examples:
         CryptoCLI token 0x1f9840a85d5af5bf1d1762f925bdaddc4201f984
         CryptoCLI token 0x1f9840a85d5af5bf1d1762f925bdaddc4201f984 --platform ethereum
@@ -214,26 +214,60 @@ def token(contract_address, platform, currency, tickers, tickers_limit, save, ou
     """
     # Get token data by contract address
     from .token_metadata import get_token_by_contract, display_token_exchange_tickers, save_token_data
-    
+
     # Validate contract address format
     if not contract_address.startswith('0x') or len(contract_address) != 42:
         print_error("Invalid contract address. Must be in the format: 0x...")
         return
-        
+
     # Get token data
     token_data = get_token_by_contract(
         contract_address=contract_address,
         asset_platform=platform,
         vs_currency=currency
     )
-    
+
     # Display exchange tickers if requested
     if token_data and tickers:
         display_token_exchange_tickers(token_data, tickers_limit)
-    
+
     # Save token data if requested
     if token_data and save:
         save_token_data(token_data, output)
+
+
+@cli.command()
+@click.option('--format', '-f', type=click.Choice(['table', 'list']), default='table',
+              help='Output format (table or list)')
+@click.option('--query', '-q', type=str, default=None,
+              help='Filter platforms by name or ID')
+@click.option('--save', '-s', is_flag=True,
+              help='Save platforms data to a JSON file')
+@click.option('--output', '-o', type=str, default=None,
+              help='Filename to save data to (requires --save)')
+def platforms(format, query, save, output):
+    """
+    List all asset platforms (blockchains) supported by CoinGecko.
+
+    Examples:
+        CryptoCLI platforms
+        CryptoCLI platforms --format list
+        CryptoCLI platforms --query ethereum
+        CryptoCLI platforms --save
+        CryptoCLI platforms --save --output platforms.json
+    """
+    from .platforms import get_asset_platforms, save_platforms_data
+
+    # Get asset platforms
+    platforms_data = get_asset_platforms(
+        display=True,
+        format_type=format,
+        query=query
+    )
+
+    # Save platforms data if requested
+    if platforms_data and save:
+        save_platforms_data(platforms_data, output)
 
 
 if __name__ == '__main__':

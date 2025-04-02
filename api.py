@@ -279,6 +279,18 @@ class CoinGeckoAPI:
         }
         
         return self._make_request(endpoint, params)
+    
+    def get_asset_platforms(self) -> List[Dict[str, Any]]:
+        """
+        Get a list of all asset platforms (blockchains) supported by CoinGecko.
+        
+        Returns:
+            List of asset platform data
+            
+        Raises:
+            Exception: For API request errors
+        """
+        return self._make_request("asset_platforms")
 
 
 # Create a singleton instance for use throughout the app
