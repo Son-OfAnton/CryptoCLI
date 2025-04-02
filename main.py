@@ -13,6 +13,7 @@ load_dotenv()
 from .api import api
 from .price import get_current_prices, get_prices_with_change
 from .history import get_historical_prices, DAY, WEEK, MONTH, YEAR, save_historical_data
+from .search import search_cryptocurrencies
 from .utils.formatting import (
     console,
     print_error,
@@ -116,6 +117,26 @@ def history(coin_id, currency, period, days, save, output):
     # Save historical data if requested
     if save and historical_data:
         save_historical_data(historical_data, output)
+
+@cli.command()
+@click.argument('query')
+@click.option('--limit', '-l', type=int, default=10,
+              help='Maximum number of results to display (default: 10)')
+def search(query, limit):
+    """
+    Search for cryptocurrencies by name or symbol.
+    
+    Examples:
+        CryptoCLI search bitcoin
+        CryptoCLI search eth
+        CryptoCLI search dog --limit 5
+    """
+    if not query:
+        print_error("Please provide a search query")
+        return
+    
+    # Search for cryptocurrencies
+    search_cryptocurrencies(query, limit=limit)
 
 if __name__ == '__main__':
     cli()
