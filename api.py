@@ -225,6 +225,60 @@ class CoinGeckoAPI:
             "days": days
         }
         return self._make_request(f"coins/{coin_id}/ohlc", params)
+    
+    def get_token_by_contract(
+        self, 
+        contract_address: str, 
+        asset_platform: str = 'ethereum'
+    ) -> Dict[str, Any]:
+        """
+        Get token data by contract address on a specific blockchain platform.
+        
+        Args:
+            contract_address: Contract address of the token
+            asset_platform: Asset platform ID (e.g., 'ethereum', 'binance-smart-chain')
+            
+        Returns:
+            Dictionary containing token metadata and market data
+            
+        Raises:
+            ValueError: If asset platform is not supported
+            Exception: For API request errors
+        """
+        # Ensure contract address is valid (basic validation)
+        if not contract_address.startswith('0x') or len(contract_address) != 42:
+            raise ValueError(
+                "Invalid contract address. Must be a valid ERC-20 or similar token address "
+                "starting with '0x' and 42 characters long."
+            )
+        
+        # List of common platforms (not comprehensive)
+        supported_platforms = [
+            'ethereum', 'binance-smart-chain', 'polygon-pos', 'optimistic-ethereum', 
+            'arbitrum-one', 'avalanche', 'fantom', 'solana'
+        ]
+        
+        # Validate asset platform (non-exhaustive check)
+        if asset_platform not in supported_platforms:
+            platform_list = ", ".join(supported_platforms)
+            raise ValueError(
+                f"Asset platform '{asset_platform}' not recognized. "
+                f"Supported platforms include: {platform_list}"
+            )
+            
+        # Make API request
+        endpoint = f"coins/{asset_platform}/contract/{contract_address}"
+        
+        # Additional parameters to get detailed market data and tickers
+        params = {
+            "tickers": "true",
+            "market_data": "true",
+            "community_data": "true",
+            "developer_data": "true",
+            "sparkline": "false"
+        }
+        
+        return self._make_request(endpoint, params)
 
 
 # Create a singleton instance for use throughout the app

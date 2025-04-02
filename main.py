@@ -186,5 +186,55 @@ def ohlc(coin_id, currency, days, save, output):
         save_ohlc_data(ohlc_data, coin_id, currency, days_int, output)
 
 
+@cli.command()
+@click.argument('contract_address')
+@click.option('--platform', '-p', default='ethereum',
+              help='Asset platform (ethereum, binance-smart-chain, polygon-pos, etc.)')
+@click.option('--currency', '-c', default='usd',
+              help='Currency to display market data in (e.g., usd, eur)')
+@click.option('--tickers/--no-tickers', default=True,
+              help='Display exchange ticker information')
+@click.option('--tickers-limit', '-t', type=int, default=5,
+              help='Maximum number of exchange tickers to display')
+@click.option('--save', '-s', is_flag=True,
+              help='Save token data to a JSON file')
+@click.option('--output', '-o', type=str, default=None,
+              help='Filename to save data to (requires --save)')
+def token(contract_address, platform, currency, tickers, tickers_limit, save, output):
+    """
+    Get detailed data for a token by contract address.
+    
+    Examples:
+        CryptoCLI token 0x1f9840a85d5af5bf1d1762f925bdaddc4201f984
+        CryptoCLI token 0x1f9840a85d5af5bf1d1762f925bdaddc4201f984 --platform ethereum
+        CryptoCLI token 0x3ee2200efb3400fabb9aacf31297cbdd1d435d47 --platform binance-smart-chain
+        CryptoCLI token 0x1f9840a85d5af5bf1d1762f925bdaddc4201f984 --currency eur
+        CryptoCLI token 0x1f9840a85d5af5bf1d1762f925bdaddc4201f984 --no-tickers
+        CryptoCLI token 0x1f9840a85d5af5bf1d1762f925bdaddc4201f984 --save
+    """
+    # Get token data by contract address
+    from .token_metadata import get_token_by_contract, display_token_exchange_tickers, save_token_data
+    
+    # Validate contract address format
+    if not contract_address.startswith('0x') or len(contract_address) != 42:
+        print_error("Invalid contract address. Must be in the format: 0x...")
+        return
+        
+    # Get token data
+    token_data = get_token_by_contract(
+        contract_address=contract_address,
+        asset_platform=platform,
+        vs_currency=currency
+    )
+    
+    # Display exchange tickers if requested
+    if token_data and tickers:
+        display_token_exchange_tickers(token_data, tickers_limit)
+    
+    # Save token data if requested
+    if token_data and save:
+        save_token_data(token_data, output)
+
+
 if __name__ == '__main__':
     cli()
