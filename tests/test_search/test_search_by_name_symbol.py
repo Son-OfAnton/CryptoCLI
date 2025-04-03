@@ -6,7 +6,7 @@ from unittest.mock import patch, MagicMock
 import io
 from rich.console import Console
 
-from search import search_cryptocurrencies, display_search_results
+from app.search import search_cryptocurrencies, display_search_results
 
 class TestSearchByNameOrSymbol:
     """Test cases specifically for searching cryptocurrencies by name or symbol."""

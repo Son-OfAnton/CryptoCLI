@@ -9,8 +9,8 @@ import io
 import sys
 
 # Import the modules to test
-from price import get_current_prices, get_prices_with_change
-from api import CoinGeckoAPI
+from app.price import get_current_prices, get_prices_with_change
+from app.api import CoinGeckoAPI
 
 
 class TestSingleCryptocurrencyPrice:
@@ -214,7 +214,7 @@ class TestSingleCryptocurrencyPrice:
         This tests the price command in the main CLI interface.
         """
         from click.testing import CliRunner
-        from main import price
+        from app.main import price
         
         # Setup the mock API
         mock_api.get_price.return_value = mock_simple_price_response
@@ -490,7 +490,7 @@ class TestMultipleCryptocurrenciesPrice:
         Test CLI interface for fetching multiple cryptocurrencies.
         """
         from click.testing import CliRunner
-        from main import price
+        from app.main import price
         
         # Mock response with multiple cryptocurrencies
         mock_response = {

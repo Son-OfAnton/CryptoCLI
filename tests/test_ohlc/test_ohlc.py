@@ -16,7 +16,7 @@ import tempfile
 # - click (required for CliRunner)
 
 # Import the modules to test
-from ohlc import (
+from app.ohlc import (
     get_ohlc_data,
     display_ohlc_data,
     display_ohlc_summary,
@@ -24,7 +24,7 @@ from ohlc import (
     save_ohlc_data,
     VALID_DAYS
 )
-from api import CoinGeckoAPI
+from app.api import CoinGeckoAPI
 
 # Add a fixture for mock OHLC data
 @pytest.fixture
@@ -420,7 +420,7 @@ class TestOHLCWithCLIIntegration:
         monkeypatch.setattr('CryptoCLI.main.get_ohlc_data', mock_get_ohlc)
         
         # Capture the CLI command output
-        from main import ohlc
+        from app.main import ohlc
         runner = CliRunner()
         result = runner.invoke(ohlc, ['bitcoin'])
         
@@ -446,7 +446,7 @@ class TestOHLCWithCLIIntegration:
         monkeypatch.setattr('CryptoCLI.main.save_ohlc_data', mock_save_ohlc)
         
         # Capture the CLI command output
-        from main import ohlc
+        from app.main import ohlc
         runner = CliRunner()
         result = runner.invoke(
             ohlc, 
@@ -488,7 +488,7 @@ class TestOHLCWithCLIIntegration:
         monkeypatch.setattr('CryptoCLI.main.get_ohlc_data', mock_get_ohlc)
         
         # Capture the CLI command output
-        from main import ohlc
+        from app.main import ohlc
         runner = CliRunner()
         result = runner.invoke(ohlc, ['unknown_coin'])
         

@@ -11,7 +11,7 @@ setup(
     install_requires=requirements,
     entry_points="""
         [console_scripts]
-        CryptoCLI=CryptoCLI.main:cli
+        CryptoCLI=app.main:cli
     """,
     author="Admas Terefe Girma",
     author_email="aadmasterefe00@gmail.com",

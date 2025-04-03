@@ -6,7 +6,7 @@ from unittest.mock import patch, MagicMock
 import io
 from rich.console import Console
 
-from search import search_cryptocurrencies, display_search_results, get_cryptocurrency_suggestion
+from app.search import search_cryptocurrencies, display_search_results, get_cryptocurrency_suggestion
 
 class TestSearchFunctionality:
     """Comprehensive test cases for cryptocurrency search functionality."""
@@ -326,7 +326,7 @@ class TestSearchFunctionality:
         Should properly pass arguments to the search function.
         """
         from click.testing import CliRunner
-        from main import search
+        from app.main import search
         
         # Create multiple mock functions for different scenarios
         mock_search_by_name = MagicMock()

@@ -1,18 +1,18 @@
 """
 Main CLI entry point for the crypto-stats application.
 """
-from .currencies import get_supported_currencies
-from .ohlc import get_ohlc_data, save_ohlc_data
-from .utils.formatting import (
+from app.currencies import get_supported_currencies
+from app.ohlc import get_ohlc_data, save_ohlc_data
+from app.utils.formatting import (
     console,
     print_error,
     print_success,
     print_warning
 )
-from .search import search_cryptocurrencies
-from .history import get_historical_prices, DAY, WEEK, MONTH, YEAR, save_historical_data
-from .price import get_current_prices, get_prices_with_change
-from .api import api
+from app.search import search_cryptocurrencies
+from app.history import get_historical_prices, DAY, WEEK, MONTH, YEAR, save_historical_data
+from app.price import get_current_prices, get_prices_with_change
+from app.api import api
 import click
 from rich.console import Console
 import sys
@@ -214,7 +214,7 @@ def token(contract_address, platform, currency, tickers, tickers_limit, save, ou
         CryptoCLI token 0x1f9840a85d5af5bf1d1762f925bdaddc4201f984 --save
     """
     # Get token data by contract address
-    from .token_metadata import get_token_by_contract, display_token_exchange_tickers, save_token_data
+    from app.token_metadata import get_token_by_contract, display_token_exchange_tickers, save_token_data
 
     # Validate contract address format
     if not contract_address.startswith('0x') or len(contract_address) != 42:
@@ -257,7 +257,7 @@ def platforms(format, query, save, output):
         CryptoCLI platforms --save
         CryptoCLI platforms --save --output platforms.json
     """
-    from .platforms import get_asset_platforms, save_platforms_data
+    from app.platforms import get_asset_platforms, save_platforms_data
 
     # Get asset platforms
     platforms_data = get_asset_platforms(

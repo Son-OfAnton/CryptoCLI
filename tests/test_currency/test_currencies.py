@@ -9,7 +9,7 @@ from io import StringIO
 import sys
 
 # Import modules to test
-from currencies import get_supported_currencies, display_supported_currencies, save_currencies_data
+from app.currencies import get_supported_currencies, display_supported_currencies, save_currencies_data
 
 @pytest.fixture
 def mock_currencies_response():
@@ -259,7 +259,7 @@ class TestCLICommand:
         runner = CliRunner()
         
         # Import the CLI function
-        from main import currencies
+        from app.main import currencies
         
         # Setup the mock API
         mock_api.get_supported_vs_currencies.return_value = mock_currencies_response
@@ -291,7 +291,7 @@ class TestCLICommand:
         runner = CliRunner()
         
         # Import the CLI function
-        from main import currencies
+        from app.main import currencies
         
         # Setup the mock API
         mock_api.get_supported_vs_currencies.return_value = mock_currencies_response
@@ -323,7 +323,7 @@ class TestCLICommand:
         runner = CliRunner()
         
         # Import the CLI function
-        from main import currencies
+        from app.main import currencies
         
         # Setup the mock API
         mock_api.get_supported_vs_currencies.return_value = mock_currencies_response
