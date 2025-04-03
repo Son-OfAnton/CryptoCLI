@@ -2,6 +2,7 @@
 Main CLI entry point for the crypto-stats application.
 """
 from app.currencies import get_supported_currencies
+from app.global_data import get_global_data
 from app.ohlc import get_ohlc_data, save_ohlc_data
 from app.utils.formatting import (
     console,
@@ -285,6 +286,29 @@ def currencies(save, output):
         CryptoCLI currencies --save --output currencies.json
     """
     get_supported_currencies(
+        display=True,
+        save=save,
+        output=output
+    )
+
+@cli.command()
+@click.option('--save', '-s', is_flag=True,
+              help='Save global market data to a JSON file')
+@click.option('--output', '-o', type=str, default=None,
+              help='Filename to save data to (requires --save)')
+def global_data(save, output):
+    """
+    Show global cryptocurrency market data.
+    
+    Displays total market capitalization, trading volume, market dominance,
+    and other key statistics about the overall cryptocurrency market.
+    
+    Examples:
+        CryptoCLI global-data
+        CryptoCLI global-data --save
+        CryptoCLI global-data --save --output global_market.json
+    """
+    get_global_data(
         display=True,
         save=save,
         output=output
