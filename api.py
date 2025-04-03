@@ -291,6 +291,15 @@ class CoinGeckoAPI:
             Exception: For API request errors
         """
         return self._make_request("asset_platforms")
+    
+    def get_supported_vs_currencies(self) -> List[str]:
+        """
+        Get list of supported vs currencies (fiat currencies used for price conversions).
+        
+        Returns:
+            List of supported currency codes (e.g., 'usd', 'eur', 'btc', etc.)
+        """
+        return self._make_request("simple/supported_vs_currencies")
 
 
 # Create a singleton instance for use throughout the app

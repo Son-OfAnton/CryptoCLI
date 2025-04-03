@@ -1,6 +1,7 @@
 """
 Main CLI entry point for the crypto-stats application.
 """
+from .currencies import get_supported_currencies
 from .ohlc import get_ohlc_data, save_ohlc_data
 from .utils.formatting import (
     console,
@@ -268,6 +269,26 @@ def platforms(format, query, save, output):
     # Save platforms data if requested
     if platforms_data and save:
         save_platforms_data(platforms_data, output)
+
+@cli.command()
+@click.option('--save', '-s', is_flag=True,
+              help='Save list of supported currencies to a JSON file')
+@click.option('--output', '-o', type=str, default=None,
+              help='Filename to save currencies to (requires --save)')
+def currencies(save, output):
+    """
+    List all supported fiat currencies for price conversions.
+    
+    Examples:
+        CryptoCLI currencies
+        CryptoCLI currencies --save
+        CryptoCLI currencies --save --output currencies.json
+    """
+    get_supported_currencies(
+        display=True,
+        save=save,
+        output=output
+    )
 
 
 if __name__ == '__main__':
