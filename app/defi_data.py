@@ -11,7 +11,7 @@ from rich.panel import Panel
 from rich.text import Text
 
 from app.api import api
-from .utils.formatting import (
+from app.utils.formatting import (
     console, 
     print_error, 
     format_currency, 
@@ -33,18 +33,20 @@ def get_defi_data(display=True, save=False, output=None, top_tokens=10):
         dict: Global DeFi market data or None if an error occurs
     """
     try:
+        # Get global DeFi data from API
+        api_response = api.get_global_defi_data()
+        
         # Debug: Print raw data structure (temporary)
         from pprint import pprint
-        print("nDEBUG: Raw API Response")
-        pprint(defi_data)        # Get global DeFi data from API
-        defi_data = api.get_global_defi_data()
+        print("\nDEBUG: Raw API Response")
+        pprint(api_response)
         
         # Check if we have a valid response with data
-        if not defi_data or 'data' not in defi_data:
+        if not api_response or 'data' not in api_response:
             print_error("Failed to get global DeFi data from CoinGecko API.")
             return None
         
-        data = defi_data['data']
+        data = api_response['data']
         
         # Display the data if requested
         if display:
@@ -75,16 +77,16 @@ def display_defi_data(data: Dict[str, Any], top_tokens: int = 10):
     # Create market overview panel
     market_text = Text()
     market_text.append("\n🔹 [bold]DeFi Market Cap:[/bold] ")
-    market_text.append(f"{format_currency(data['defi_market_cap'], 'USD')}\n")
+    market_text.append(f"{format_currency(data.get('defi_market_cap', 0), 'USD')}\n")
     
     market_text.append("🔹 [bold]Ethereum Market Cap:[/bold] ")
-    market_text.append(f"{format_currency(data['eth_market_cap'], 'USD')}\n")
+    market_text.append(f"{format_currency(data.get('eth_market_cap', 0), 'USD')}\n")
     
     market_text.append("🔹 [bold]DeFi to Ethereum Ratio:[/bold] ")
     market_text.append(f"{format_percentage(data.get('defi_to_eth_ratio', 0))}\n")
     
     market_text.append("🔹 [bold]Trading Volume 24h:[/bold] ")
-    market_text.append(f"{format_currency(data['trading_volume_24h'], 'USD')}\n")
+    market_text.append(f"{format_currency(data.get('trading_volume_24h', 0), 'USD')}\n")
     
     market_text.append("🔹 [bold]DeFi Dominance:[/bold] ")
     market_text.append(f"{format_percentage(data.get('defi_dominance', 0))}\n")
