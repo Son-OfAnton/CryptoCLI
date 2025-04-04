@@ -154,25 +154,26 @@ def print_success(message: str):
     console.print(f"[bold green]Success:[/bold green] {message}")
 
 
-def format_percentage(value: float, decimal_places: int = 2) -> str:
+def format_percentage(value: Any, decimal_places: int = 2) -> str:
     """
     Format a float value as a percentage string.
-
+    
     Args:
         value: Float value to format (0.01 = 1%)
         decimal_places: Number of decimal places to show
-
+    
     Returns:
         Formatted percentage string
     """
     if value is None:
         return "N/A"
-
+    
     try:
         # Convert to float if it might be a string
         value = float(value)
-
+        
         # Format as percentage with specified decimal places
         return f"{value:.{decimal_places}f}%"
-    except ValueError:
-        return "N/A"
+    except (ValueError, TypeError):
+        # Handle case where value can't be converted to float
+        return str(value)

@@ -33,7 +33,10 @@ def get_defi_data(display=True, save=False, output=None, top_tokens=10):
         dict: Global DeFi market data or None if an error occurs
     """
     try:
-        # Get global DeFi data from API
+        # Debug: Print raw data structure (temporary)
+        from pprint import pprint
+        print("nDEBUG: Raw API Response")
+        pprint(defi_data)        # Get global DeFi data from API
         defi_data = api.get_global_defi_data()
         
         # Check if we have a valid response with data
@@ -78,13 +81,13 @@ def display_defi_data(data: Dict[str, Any], top_tokens: int = 10):
     market_text.append(f"{format_currency(data['eth_market_cap'], 'USD')}\n")
     
     market_text.append("🔹 [bold]DeFi to Ethereum Ratio:[/bold] ")
-    market_text.append(f"{format_percentage(data['defi_to_eth_ratio'])}\n")
+    market_text.append(f"{format_percentage(data.get('defi_to_eth_ratio', 0))}\n")
     
     market_text.append("🔹 [bold]Trading Volume 24h:[/bold] ")
     market_text.append(f"{format_currency(data['trading_volume_24h'], 'USD')}\n")
     
     market_text.append("🔹 [bold]DeFi Dominance:[/bold] ")
-    market_text.append(f"{format_percentage(data['defi_dominance'])}\n")
+    market_text.append(f"{format_percentage(data.get('defi_dominance', 0))}\n")
     
     market_text.append("🔹 [bold]Top DeFi Tokens by Market Cap:[/bold] ")
     market_text.append(f"{top_tokens} out of {data.get('top_coins_count', 100)}\n")
