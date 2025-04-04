@@ -187,3 +187,105 @@ def mock_trending_coins_response():
         "nfts": [],  # Empty NFTs for coin-only test
         "updated_at": 1627851600  # Timestamp example: August 1, 2021
     }
+
+@pytest.fixture
+def mock_trending_nfts_response():
+    """Mock response for the search/trending endpoint with NFTs data"""
+    return {
+        "coins": [],  # Empty coins for NFT-only test
+        "nfts": [
+            {
+                "item": {
+                    "id": "bored-ape-yacht-club",
+                    "name": "Bored Ape Yacht Club",
+                    "symbol": "BAYC",
+                    "thumb": "https://example.com/bayc.png",
+                    "floor_price_in_eth": 45.5,
+                    "market_cap": 450000000,
+                    "volume_24h": 5600000,
+                    "floor_price_24h_percentage_change": 2.5,
+                    "score": 0
+                }
+            },
+            {
+                "item": {
+                    "id": "cryptopunks",
+                    "name": "CryptoPunks",
+                    "symbol": "PUNK",
+                    "thumb": "https://example.com/cryptopunks.png",
+                    "floor_price_in_eth": 60.2,
+                    "market_cap": 600000000,
+                    "volume_24h": 7800000,
+                    "floor_price_24h_percentage_change": -1.2,
+                    "score": 1
+                }
+            },
+            {
+                "item": {
+                    "id": "azuki",
+                    "name": "Azuki",
+                    "symbol": "AZUKI",
+                    "thumb": "https://example.com/azuki.png",
+                    "floor_price_in_eth": 15.3,
+                    "market_cap": 150000000,
+                    "volume_24h": 2100000,
+                    "floor_price_24h_percentage_change": 5.3,
+                    "score": 2
+                }
+            }
+        ],
+        "updated_at": 1627851600  # Timestamp example: August 1, 2021
+    }
+
+@pytest.fixture
+def mock_trending_combined_response():
+    """Mock response for the search/trending endpoint with both coins and NFTs data"""
+    return {
+        "coins": [
+            {
+                "item": {
+                    "id": "bitcoin",
+                    "name": "Bitcoin",
+                    "symbol": "BTC",
+                    "market_cap_rank": 1,
+                    "price_btc": 1.0,
+                    "score": 0
+                }
+            },
+            {
+                "item": {
+                    "id": "ethereum",
+                    "name": "Ethereum",
+                    "symbol": "ETH",
+                    "market_cap_rank": 2,
+                    "price_btc": 0.05,
+                    "score": 1
+                }
+            }
+        ],
+        "nfts": [
+            {
+                "item": {
+                    "id": "bored-ape-yacht-club",
+                    "name": "Bored Ape Yacht Club",
+                    "symbol": "BAYC",
+                    "floor_price_in_eth": 45.5,
+                    "market_cap": 450000000,
+                    "volume_24h": 5600000,
+                    "score": 0
+                }
+            },
+            {
+                "item": {
+                    "id": "cryptopunks",
+                    "name": "CryptoPunks",
+                    "symbol": "PUNK",
+                    "floor_price_in_eth": 60.2,
+                    "market_cap": 600000000,
+                    "volume_24h": 7800000,
+                    "score": 1
+                }
+            }
+        ],
+        "updated_at": 1627851600  # Timestamp example: August 1, 2021
+    }

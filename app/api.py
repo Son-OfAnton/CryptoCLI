@@ -322,6 +322,18 @@ class CoinGeckoAPI:
             Global DeFi market data
         """
         return self._make_request("global/decentralized_finance_defi")
+    
+    def get_companies_public_treasury(self, coin_id: str) -> Dict[str, Any]:
+        """
+        Get public companies holding a specific cryptocurrency in their treasury.
+
+        Args:
+            coin_id: ID of the coin (e.g., "bitcoin" or "ethereum")
+
+        Returns:
+            Public companies treasury data
+        """
+        return self._make_request(f"companies/public_treasury/{coin_id}")
 
 
 # Create a singleton instance for use throughout the app

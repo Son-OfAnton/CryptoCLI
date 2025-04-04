@@ -1,6 +1,7 @@
 """
 Main CLI entry point for the crypto-stats application.
 """
+from app.companies import get_companies_treasury
 from app.currencies import get_supported_currencies
 from app.defi_data import get_defi_data
 from app.global_data import get_global_data
@@ -335,6 +336,7 @@ def defi(save, output, top):
     """
     get_defi_data(display=True, save=save, output=output, top_tokens=top)
 
+
 @cli.command()
 @click.option("--type", "-t", type=click.Choice(["coins", "nfts", "all"]), default="coins",
               help="Type of trending data to display (coins, nfts, or all)")
@@ -345,7 +347,7 @@ def defi(save, output, top):
 def trending(type, save, output):
     """
     Show trending coins or NFTs on CoinGecko in the last 24 hours.
-    
+
     Displays top assets by interest based on CoinGecko's search and trends data.
     """
     get_trending(data_type=type, display=True, save=save, output=output)
@@ -359,7 +361,7 @@ def trending(type, save, output):
 def trending_coins(save, output):
     """
     Show trending coins on CoinGecko in the last 24 hours.
-    
+
     Displays top coins by interest based on CoinGecko's search and trends data.
     """
     get_trending_coins(display=True, save=save, output=output)
@@ -373,10 +375,26 @@ def trending_coins(save, output):
 def trending_nfts(save, output):
     """
     Show trending NFTs on CoinGecko in the last 24 hours.
-    
+
     Displays top NFT collections by interest based on CoinGecko's search and trends data.
     """
     get_trending_nfts(display=True, save=save, output=output)
+
+
+@cli.command()
+@click.argument('coin_id', type=click.Choice(['bitcoin', 'ethereum']), required=True)
+@click.option("--save", "-s", is_flag=True,
+              help="Save companies treasury data to a JSON file")
+@click.option("--output", "-o", type=str, default=None,
+              help="Filename to save data to (requires --save)")
+def companies(coin_id, save, output):
+    """
+    Show public companies holding Bitcoin or Ethereum in their treasury.
+
+    Displays company information, holdings amount, and value statistics.
+    """
+    get_companies_treasury(coin_id=coin_id, display=True,
+                           save=save, output=output)
 
 
 if __name__ == '__main__':
