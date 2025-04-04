@@ -178,6 +178,19 @@ class CoinGeckoAPI:
             Trending coins data
         """
         return self._make_request("search/trending")
+    
+    def get_trending_nfts(self) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Get trending NFTs in the last 24 hours.
+
+        Returns:
+            Trending NFTs data
+        """
+        response = self._make_request("search/trending")
+        # Extract only the NFTs part of the response
+        if response and "nfts" in response:
+            return {"nfts": response["nfts"]}
+        return {"nfts": []}
 
     def get_global_data(self) -> Dict[str, Any]:
         """
