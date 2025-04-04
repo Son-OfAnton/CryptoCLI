@@ -6,7 +6,7 @@ import os
 import json
 import tempfile
 from unittest.mock import patch, MagicMock
-from app.trending import get_trending_coins, get_trending, display_trending_coins
+from app.trending import get_trending_coins, get_trending, display_trending_coins, get_trending_nfts
 
 
 class TestTrendingCoins:

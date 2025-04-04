@@ -289,3 +289,90 @@ def mock_trending_combined_response():
         ],
         "updated_at": 1627851600  # Timestamp example: August 1, 2021
     }
+
+@pytest.fixture
+def mock_bitcoin_treasury_response():
+    """Mock response for the companies/public_treasury/bitcoin endpoint"""
+    return {
+        "total_holdings": 174045.0,
+        "total_value_usd": 6962354677.5,
+        "market_cap_dominance": 0.92,
+        "companies": [
+            {
+                "name": "MicroStrategy",
+                "symbol": "MSTR",
+                "country": "US",
+                "total_holdings": 129218.0,
+                "total_entry_value_usd": 3969905896.01,
+                "total_current_value_usd": 5168720000.0,
+                "percentage_of_total_supply": 0.615,
+                "country_of_domicile": "United States",
+                "market_type": "public"
+            },
+            {
+                "name": "Tesla",
+                "symbol": "TSLA",
+                "country": "US",
+                "total_holdings": 10725.0,
+                "total_entry_value_usd": 1500000000.0,
+                "total_current_value_usd": 429000000.0,
+                "percentage_of_total_supply": 0.051,
+                "country_of_domicile": "United States",
+                "market_type": "public"
+            },
+            {
+                "name": "Marathon Digital Holdings",
+                "symbol": "MARA",
+                "country": "US",
+                "total_holdings": 8492.0,
+                "total_entry_value_usd": 282700000.0,
+                "total_current_value_usd": 339680000.0,
+                "percentage_of_total_supply": 0.04,
+                "country_of_domicile": "United States",
+                "market_type": "public"
+            }
+        ]
+    }
+
+@pytest.fixture
+def mock_ethereum_treasury_response():
+    """Mock response for the companies/public_treasury/ethereum endpoint"""
+    return {
+        "total_holdings": 218306.0,
+        "total_value_usd": 392950800.0,
+        "market_cap_dominance": 0.31,
+        "companies": [
+            {
+                "name": "Galaxy Digital Holdings",
+                "symbol": "GLXY",
+                "country": "CA",
+                "total_holdings": 145000.0,
+                "total_entry_value_usd": 293000000.0,
+                "total_current_value_usd": 261000000.0, 
+                "percentage_of_total_supply": 0.12,
+                "country_of_domicile": "Canada",
+                "market_type": "public"
+            },
+            {
+                "name": "Meitu Inc",
+                "symbol": "1357",
+                "country": "HK",
+                "total_holdings": 31000.0,
+                "total_entry_value_usd": 50500000.0,
+                "total_current_value_usd": 55800000.0,
+                "percentage_of_total_supply": 0.026,
+                "country_of_domicile": "Hong Kong",
+                "market_type": "public"
+            }
+        ]
+    }
+
+@pytest.fixture
+def mock_empty_treasury_response():
+    """Mock empty response for the companies/public_treasury endpoint"""
+    return {
+        "total_holdings": 0,
+        "total_value_usd": 0,
+        "market_cap_dominance": 0,
+        "companies": []
+    }
