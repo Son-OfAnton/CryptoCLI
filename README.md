@@ -47,7 +47,7 @@ pip install -e .
 CryptoCLI requires a CoinGecko API key to function. Create a `.env` file in your home directory or project root with:
 
 ```
-COINGECKO_BASE_URL=https://api.coingecko.com/api/v3
+COINGECKO_BASE_URL=official_coingecko_api_url
 COINGECKO_API_KEY=your_api_key_here
 ```
 
@@ -117,9 +117,45 @@ CryptoCLI search dog --limit 5
 CryptoCLI config
 ```
 
+### Global Crypto Data
+
+```bash
+# Get global cryptocurrency data
+CryptoCLI global-data
+```
+
+### Supported Fiat Currencies
+
+```bash
+# Display supported fiat currencies for price conversion
+CryptoCLI fiat
+```
+
+### Token Details
+
+```bash
+# Get detailed data for a token by contract address
+CryptoCLI token 0x1f9840a85d5af5bf1d1762f925bdaddc4201f984
+```
+
+### Asset Platforms
+
+```bash
+# List all asset platforms supported by CoinGecko
+CryptoCLI platforms
+```
+
+### Supported Currencies
+
+```bash
+# List all supported fiat currencies for price conversions
+CryptoCLI currencies
+```
+
 ## Command Reference
 
 ### `price`
+
 Get current prices for specific coins.
 
 ```
@@ -127,10 +163,12 @@ CryptoCLI price COIN_IDS... [OPTIONS]
 ```
 
 Options:
+
 - `--currencies, -c`: Comma-separated list of currencies (default: usd)
 - `--detailed, -d`: Show more detailed information including 24h change
 
 ### `history`
+
 Get historical price data for a specific coin.
 
 ```
@@ -138,6 +176,7 @@ CryptoCLI history COIN_ID [OPTIONS]
 ```
 
 Options:
+
 - `--currency, -c`: Currency to get data in (default: usd)
 - `--period, -p`: Time period for historical data (day, week, month, year, custom)
 - `--days, -d`: Custom number of days (for custom period)
@@ -145,6 +184,7 @@ Options:
 - `--output, -o`: Filename to save data to (requires --save)
 
 ### `ohlc`
+
 Get OHLC (Open, High, Low, Close) chart data for a specific coin.
 
 ```
@@ -152,12 +192,14 @@ CryptoCLI ohlc COIN_ID [OPTIONS]
 ```
 
 Options:
+
 - `--currency, -c`: Currency to get data in (default: usd)
 - `--days, -d`: Number of days of data (1,7,14,30,90,180,365)
 - `--save, -s`: Save OHLC data to a JSON file
-- `--output, -o`: Filename to save data to (requires --save)
+- `--output, -o`: Filename to save data (requires --save)
 
 ### `search`
+
 Search for cryptocurrencies by name or symbol.
 
 ```
@@ -165,14 +207,82 @@ CryptoCLI search QUERY [OPTIONS]
 ```
 
 Options:
+
 - `--limit, -l`: Maximum number of results to display (default: 10)
 
 ### `config`
+
 Display current configuration.
 
 ```
 CryptoCLI config
 ```
+
+### `global-data`
+
+Show global cryptocurrency market data.
+
+```
+CryptoCLI global-data [OPTIONS]
+```
+
+Options:
+
+- `--save, -s`: Save global market data to a JSON file
+- `--output, -o`: Filename to save data (requires --save)
+
+### `fiat`
+
+Display a list of fiat currencies supported for price conversions.
+
+```
+CryptoCLI fiat
+```
+
+### `token`
+
+Get detailed data for a token using its contract address.
+
+```
+CryptoCLI token CONTRACT_ADDRESS [OPTIONS]
+```
+
+Options:
+
+- `--platform, -p`: Asset platform (default: ethereum)
+- `--currency, -c`: Currency for market data (default: usd)
+- `--tickers/--no-tickers`: Display exchange ticker information (default: enabled)
+- `--tickers-limit, -t`: Maximum number of exchange tickers to display (default: 5)
+- `--save, -s`: Save token data to a JSON file
+- `--output, -o`: Filename to save data (requires --save)
+
+### `platforms`
+
+List all asset platforms (blockchains) supported by CoinGecko.
+
+```
+CryptoCLI platforms [OPTIONS]
+```
+
+Options:
+
+- `--format, -f`: Output format (table or list; default: table)
+- `--query, -q`: Filter platforms by name or ID
+- `--save, -s`: Save platforms data to a JSON file
+- `--output, -o`: Filename to save data (requires --save)
+
+### `currencies`
+
+List all supported fiat currencies for price conversions.
+
+```
+CryptoCLI currencies [OPTIONS]
+```
+
+Options:
+
+- `--save, -s`: Save list of currencies to a JSON file
+- `--output, -o`: Filename to save data (requires --save)
 
 ## Data Export
 

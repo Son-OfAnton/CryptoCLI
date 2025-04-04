@@ -301,6 +301,15 @@ class CoinGeckoAPI:
         """
         return self._make_request("simple/supported_vs_currencies")
 
+    def get_global_defi_data(self) -> Dict[str, Any]:
+        """
+        Get global decentralized finance (DeFi) data.
+
+        Returns:
+            Global DeFi market data
+        """
+        return self._make_request("global/decentralized_finance_defi")
+
 
 # Create a singleton instance for use throughout the app
 api = CoinGeckoAPI()

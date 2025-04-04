@@ -2,6 +2,7 @@
 Main CLI entry point for the crypto-stats application.
 """
 from app.currencies import get_supported_currencies
+from app.defi_data import get_defi_data
 from app.global_data import get_global_data
 from app.ohlc import get_ohlc_data, save_ohlc_data
 from app.utils.formatting import (
@@ -271,6 +272,7 @@ def platforms(format, query, save, output):
     if platforms_data and save:
         save_platforms_data(platforms_data, output)
 
+
 @cli.command()
 @click.option('--save', '-s', is_flag=True,
               help='Save list of supported currencies to a JSON file')
@@ -279,7 +281,7 @@ def platforms(format, query, save, output):
 def currencies(save, output):
     """
     List all supported fiat currencies for price conversions.
-    
+
     Examples:
         CryptoCLI currencies
         CryptoCLI currencies --save
@@ -291,6 +293,7 @@ def currencies(save, output):
         output=output
     )
 
+
 @cli.command()
 @click.option('--save', '-s', is_flag=True,
               help='Save global market data to a JSON file')
@@ -299,10 +302,10 @@ def currencies(save, output):
 def global_data(save, output):
     """
     Show global cryptocurrency market data.
-    
+
     Displays total market capitalization, trading volume, market dominance,
     and other key statistics about the overall cryptocurrency market.
-    
+
     Examples:
         CryptoCLI global-data
         CryptoCLI global-data --save
@@ -313,6 +316,23 @@ def global_data(save, output):
         save=save,
         output=output
     )
+
+
+@cli.command()
+@click.option("--save", "-s", is_flag=True,
+              help="Save DeFi market data to a JSON file")
+@click.option("--output", "-o", type=str, default=None,
+              help="Filename to save data to (requires --save)")
+@click.option("--top", "-t", type=click.IntRange(1, 100), default=10,
+              help="Number of top DeFi tokens to display (1-100)")
+def defi(save, output, top):
+    """
+    Display global DeFi market statistics.
+
+    Shows current DeFi market capitalization, dominance, trading volume,
+    and top DeFi tokens by market cap.
+    """
+    get_defi_data(display=True, save=save, output=output, top_tokens=top)
 
 
 if __name__ == '__main__':
