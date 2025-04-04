@@ -33,7 +33,12 @@ def get_defi_data(display=True, save=False, output=None, top_tokens=10):
         dict: Global DeFi market data or None if an error occurs
     """
     try:
-        # Get global DeFi data from API
+        # Make sure top_tokens is an integer
+        try:
+            top_tokens = int(top_tokens)
+            top_tokens = max(1, min(100, top_tokens))
+        except (TypeError, ValueError):
+            top_tokens = 10  # Default to 10 if conversion fails        # Get global DeFi data from API
         api_response = api.get_global_defi_data()
         
         # Debug: Print raw data structure (temporary)
@@ -72,7 +77,11 @@ def display_defi_data(data: Dict[str, Any], top_tokens: int = 10):
         top_tokens (int): Number of top DeFi tokens to display
     """
     # Limit top_tokens to range 1-100
-    top_tokens = max(1, min(100, top_tokens))
+    try:
+        top_tokens = int(top_tokens)
+        top_tokens = max(1, min(100, top_tokens))
+    except (TypeError, ValueError):
+        top_tokens = 10  # Default to 10 if conversion fails
     
     # Create market overview panel
     market_text = Text()
