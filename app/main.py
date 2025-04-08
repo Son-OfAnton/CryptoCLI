@@ -6,6 +6,7 @@ from app.currencies import get_supported_currencies
 from app.defi_data import get_defi_data
 from app.global_data import get_global_data
 from app.ohlc import get_ohlc_data, save_ohlc_data
+from app.ohlc_range import get_ohlc_range_data, save_ohlc_range_data
 from app.trending import get_trending_coins, get_trending, get_trending_nfts
 from app.utils.formatting import (
     console,
@@ -17,6 +18,9 @@ from app.search import search_cryptocurrencies
 from app.history import get_historical_prices, DAY, WEEK, MONTH, YEAR, save_historical_data
 from app.price import get_current_prices, get_prices_with_change
 from app.api import api
+from app.api_usage import get_api_usage, display_usage_stats, save_api_usage_export
+from app.gainers_losers import get_gainers_losers, TimePeriod
+from app.newly_listed import get_newly_listed_coins, display_new_coin_details, get_detailed_analysis
 import click
 from rich.console import Console
 import sys
@@ -396,6 +400,522 @@ def companies(coin_id, save, output):
     get_companies_treasury(coin_id=coin_id, display=True,
                            save=save, output=output)
 
+
+@cli.command()
+@click.option("--refresh", "-r", is_flag=True,
+              help="Make a lightweight API call to refresh usage statistics")
+@click.option("--save", "-s", is_flag=True,
+              help="Save usage statistics to a JSON file")
+@click.option("--output", "-o", type=str, default=None,
+              help="Filename to save data to (requires --save)")
+def usage(refresh, save, output):
+    """
+    Display CoinGecko API usage statistics.
+
+    Shows rate limits, remaining credits, usage patterns, and provides recommendations
+    based on your usage patterns.
+
+    Examples:
+        CryptoCLI usage
+        CryptoCLI usage --refresh
+        CryptoCLI usage --save
+        CryptoCLI usage --save --output api_usage.json
+    """
+    # Get API usage data with optional refresh
+    usage_data = get_api_usage(force_refresh=refresh)
+
+    # Display the usage statistics
+    display_usage_stats(usage_data)
+
+    # Save usage data if requested
+    if save:
+        file_path = save_api_usage_export(usage_data, output)
+        print_success(f"API usage data saved to: {file_path}")
+
+
+@cli.command()
+@click.option("--period", "-p",
+              type=click.Choice(
+                  ["1h", "24h", "7d", "14d", "30d", "200d", "1y"]),
+              default="24h",
+              help="Time period for price change")
+@click.option("--currency", "-c", default="usd",
+              help="Currency to display prices in (e.g., usd, eur)")
+@click.option("--limit", "-l", default=30,
+              help="Number of gainers and losers to display")
+@click.option("--save", "-s", is_flag=True,
+              help="Save gainers and losers data to a JSON file")
+@click.option("--output", "-o", type=str, default=None,
+              help="Filename to save data to (requires --save)")
+def movers(period, currency, limit, save, output):
+    """
+    Show top cryptocurrency gainers and losers by price change percentage.
+
+    Displays cryptocurrencies with the largest price gains and losses 
+    for a specific time period (1h, 24h, 7d, 14d, 30d, 200d, 1y).
+
+    Examples:
+        CryptoCLI movers
+        CryptoCLI movers --period 7d
+        CryptoCLI movers --period 1h --currency eur
+        CryptoCLI movers --period 30d --limit 20
+        CryptoCLI movers --save
+        CryptoCLI movers --save --output price_movers.json
+    """
+    # Convert limit to integer
+    limit = int(limit)
+
+    # Get gainers and losers data
+    get_gainers_losers(
+        time_period=period,
+        vs_currency=currency,
+        limit=limit,
+        display=True,
+        save=save,
+        output=output
+    )
+
+
+@cli.command()
+@click.option("--days", "-d", type=click.Choice(["7", "14", "30", "all"]),
+              default="14",
+              help="Show coins listed within this many days (all = no filtering)")
+@click.option("--currency", "-c", default="usd",
+              help="Currency to display prices in (e.g., usd, eur)")
+@click.option("--limit", "-l", default=100, type=int,
+              help="Maximum number of newly listed coins to display (up to 250)")
+@click.option("--analyze", "-a", is_flag=True,
+              help="Show detailed statistical analysis of newly listed coins")
+@click.option("--save", "-s", is_flag=True,
+              help="Save newly listed coins data to a JSON file")
+@click.option("--output", "-o", type=str, default=None,
+              help="Filename to save data to (requires --save)")
+def new_coins(days, currency, limit, analyze, save, output):
+    """
+    Show recently listed coins on CoinGecko.
+
+    Displays the most recently listed cryptocurrencies on CoinGecko,
+    with options to filter by listing date, limit the number of results,
+    and perform statistical analysis.
+
+    Examples:
+        CryptoCLI new-coins
+        CryptoCLI new-coins --days 7
+        CryptoCLI new-coins --days all
+        CryptoCLI new-coins --currency eur
+        CryptoCLI new-coins --limit 200
+        CryptoCLI new-coins --analyze
+        CryptoCLI new-coins --save
+        CryptoCLI new-coins --save --output new_listings.json
+    """
+    # Handle the "all" case
+    days_filter = 0 if days == "all" else int(days)
+
+    # Get newly listed coins data
+    newly_listed = get_newly_listed_coins(
+        vs_currency=currency,
+        days=days_filter,
+        limit=limit,
+        display=True,
+        save=save,
+        output=output
+    )
+
+    # Show detailed analysis if requested
+    if analyze and newly_listed:
+        get_detailed_analysis(newly_listed, currency)
+
+
+@cli.command()
+@click.argument('coin_id')
+@click.option("--currency", "-c", default="usd",
+              help="Currency to display prices in (e.g., usd, eur)")
+def new_coin_details(coin_id, currency):
+    """
+    Show detailed information about a specific newly listed coin.
+
+    Displays comprehensive details for a specific coin by its CoinGecko ID.
+    Use this command to explore a particular newly listed coin in more depth.
+
+    Examples:
+        CryptoCLI new-coin-details bitcoin
+        CryptoCLI new-coin-details ethereum --currency eur
+    """
+    try:
+        # Get coin data from the new coins endpoint
+        new_coins = api._make_request("coins/list/new")
+
+        # Check if the specified coin is in the new coins list
+        coin_basic_info = next(
+            (coin for coin in new_coins if coin['id'] == coin_id), None)
+
+        if not coin_basic_info:
+            print_warning(
+                f"Coin with ID '{coin_id}' not found in newly listed coins. Fetching general coin data...")
+
+        # Even if not a newly listed coin, fetch its market data
+        params = {
+            "vs_currency": currency,
+            "ids": coin_id,
+            "sparkline": "false",
+            "price_change_percentage": "24h,7d"
+        }
+
+        # Make the API request to get detailed data
+        coin_data = api._make_request("coins/markets", params)
+
+        if not coin_data or len(coin_data) == 0:
+            print_error(f"No data found for coin ID: {coin_id}")
+            return
+
+        # Combine the data
+        combined_data = {**coin_data[0]}
+        if coin_basic_info:
+            # Add date_added if the coin is in the new coins list
+            combined_data['date_added'] = coin_basic_info.get('date_added')
+
+        # Display detailed information about the coin
+        display_new_coin_details(combined_data, currency)
+
+    except Exception as e:
+        print_error(f"Error retrieving coin details: {str(e)}")
+
+
+@cli.command()
+@click.argument('coin_id')
+@click.option('--currency', '-c', default='usd',
+              help='Currency to get data in (e.g., usd, eur)')
+@click.option('--from-date', '-f', required=True,
+              help='Start date in YYYY-MM-DD format (e.g., 2023-01-01)')
+@click.option('--to-date', '-t', required=True,
+              help='End date in YYYY-MM-DD format (e.g., 2023-03-31)')
+@click.option('--save', '-s', is_flag=True,
+              help='Save OHLC data to a JSON file')
+@click.option('--output', '-o', type=str, default=None,
+              help='Filename to save data to (requires --save)')
+def ohlc_range(coin_id, currency, from_date, to_date, save, output):
+    """
+    Get OHLC (Open, High, Low, Close) chart data for a specific coin within a date range.
+
+    Retrieves OHLC data for a cryptocurrency between two specific dates and displays
+    the results in a table format with summary statistics and a simple ASCII chart.
+
+    Examples:
+        CryptoCLI ohlc-range bitcoin --from-date 2023-01-01 --to-date 2023-03-31
+        CryptoCLI ohlc-range ethereum --currency eur --from-date 2023-01-01 --to-date 2023-03-31
+        CryptoCLI ohlc-range bitcoin --from-date 2023-01-01 --to-date 2023-03-31 --save
+        CryptoCLI ohlc-range bitcoin --from-date 2023-01-01 --to-date 2023-03-31 --save --output bitcoin_q1_2023.json
+    """
+    from app.ohlc_range import get_ohlc_range_data, save_ohlc_range_data
+    from datetime import datetime
+    import time
+
+    try:
+        # Convert date strings to timestamps
+        try:
+            from_timestamp = int(datetime.strptime(
+                from_date, "%Y-%m-%d").timestamp())
+            to_timestamp = int(datetime.strptime(
+                to_date, "%Y-%m-%d").timestamp())
+
+            # Add 1 day to to_timestamp to include the end date
+            to_timestamp += 24 * 60 * 60  # Add 1 day in seconds
+        except ValueError:
+            print_error(
+                "Invalid date format. Please use YYYY-MM-DD format (e.g., 2023-01-01)")
+            return
+
+        # Get OHLC data
+        ohlc_data = get_ohlc_range_data(
+            coin_id=coin_id,
+            vs_currency=currency,
+            from_timestamp=from_timestamp,
+            to_timestamp=to_timestamp,
+            display=True
+        )
+
+        # Save OHLC data if requested
+        if save and ohlc_data:
+            save_ohlc_range_data(
+                ohlc_data=ohlc_data,
+                coin_id=coin_id,
+                vs_currency=currency,
+                from_timestamp=from_timestamp,
+                to_timestamp=to_timestamp,
+                filename=output
+            )
+
+    except Exception as e:
+        print_error(f"Error retrieving OHLC range data: {str(e)}")
+
+
+@cli.command()
+@click.argument('coin_id')
+@click.option('--days', '-d', default=30, type=int,
+              help='Number of days of historical data to retrieve (default: 30)')
+@click.option('--analyze', '-a', is_flag=True,
+              help='Perform detailed trend analysis of the supply data')
+@click.option('--save', '-s', is_flag=True,
+              help='Save supply history data to a JSON file')
+@click.option('--output', '-o', type=str, default=None,
+              help='Filename to save data to (requires --save)')
+def supply_history(coin_id, days, analyze, save, output):
+    """
+    Get historical circulating supply data for a specific coin.
+
+    Retrieves and displays estimated circulating supply history for a cryptocurrency
+    over a specified number of days, with options to analyze supply trends and save data.
+
+    Examples:
+        CryptoCLI supply-history bitcoin
+        CryptoCLI supply-history ethereum --days 90
+        CryptoCLI supply-history bitcoin --days 365 --analyze
+        CryptoCLI supply-history bitcoin --save
+        CryptoCLI supply-history bitcoin --save --output bitcoin_supply.json
+    """
+    from app.supply_history import get_supply_history, analyze_supply_trends
+
+    # Get the supply history data
+    supply_data = get_supply_history(
+        coin_id=coin_id,
+        days=days,
+        display=True,
+        save=save,
+        output=output
+    )
+
+    # Perform trend analysis if requested
+    if analyze and supply_data:
+        analyze_supply_trends(supply_data, coin_id)
+
+
+@cli.command()
+@click.option("--limit", "-l", default=100, type=int,
+              help="Maximum number of exchanges to display (default: 100)")
+@click.option("--filter", "-f", type=str, default=None,
+              help="Filter exchanges by name, ID, or country")
+@click.option("--sort", "-s", type=click.Choice(["trust_score", "volume_24h", "name", "country"]),
+              default="trust_score", help="Sort exchanges by field")
+@click.option("--analyze", "-a", is_flag=True,
+              help="Perform analysis on exchange market data")
+@click.option("--save", "-v", is_flag=True,
+              help="Save exchanges data to a JSON file")
+@click.option("--output", "-o", type=str, default=None,
+              help="Filename to save data to (requires --save)")
+def exchanges(limit, filter, sort, analyze, save, output):
+    """
+    List cryptocurrency exchanges with active trading volumes.
+
+    Retrieves and displays data about cryptocurrency exchanges including
+    name, country, trust score, and 24-hour trading volume.
+
+    Examples:
+        CryptoCLI exchanges
+        CryptoCLI exchanges --limit 50
+        CryptoCLI exchanges --filter binance
+        CryptoCLI exchanges --filter US
+        CryptoCLI exchanges --sort volume_24h
+        CryptoCLI exchanges --analyze
+        CryptoCLI exchanges --save
+        CryptoCLI exchanges --save --output exchanges_data.json
+    """
+    from app.exchanges import get_exchanges, analyze_exchange_activity
+
+    # Get exchanges data
+    exchanges_data = get_exchanges(
+        limit=limit,
+        display=True,
+        filter_by=filter,
+        sort_by=sort,
+        save=save,
+        output=output
+    )
+
+    # Perform analysis if requested
+    if analyze and exchanges_data:
+        analyze_exchange_activity(exchanges_data)
+
+
+@cli.command()
+@click.argument('exchange_id')
+@click.option("--save", "-s", is_flag=True,
+              help="Save exchange details to a JSON file")
+@click.option("--output", "-o", type=str, default=None,
+              help="Filename to save data to (requires --save)")
+def exchange_details(exchange_id, save, output):
+    """
+    Get detailed information about a specific cryptocurrency exchange.
+
+    Retrieves and displays comprehensive details about a specific exchange,
+    including trading pairs, volume, social media links, and status updates.
+
+    Examples:
+        CryptoCLI exchange-details binance
+        CryptoCLI exchange-details coinbase
+        CryptoCLI exchange-details kraken --save
+        CryptoCLI exchange-details ftx --save --output ftx_details.json
+    """
+    from app.exchanges import get_exchange_details
+
+    # Get exchange details
+    get_exchange_details(
+        exchange_id=exchange_id,
+        display=True,
+        save=save,
+        output=output
+    )
+
+
+@cli.command()
+@click.argument('exchange_id')
+@click.option('--days', '-d', default=30, type=int,
+              help='Number of days of historical data to retrieve (default: 30)')
+@click.option('--analyze', '-a', is_flag=True,
+              help='Perform detailed analysis of volume patterns')
+@click.option('--save', '-s', is_flag=True,
+              help='Save volume history data to a JSON file')
+@click.option('--output', '-o', type=str, default=None,
+              help='Filename to save data to (requires --save)')
+def exchange_volume(exchange_id, days, analyze, save, output):
+    """
+    Get historical trading volume data for a specific exchange.
+
+    Retrieves and displays historical trading volume in BTC for a specific exchange
+    over a specified number of days, with options to analyze volume patterns and save data.
+
+    Examples:
+        CryptoCLI exchange-volume binance
+        CryptoCLI exchange-volume coinbase --days 90
+        CryptoCLI exchange-volume kraken --days 365 --analyze
+        CryptoCLI exchange-volume binance --save
+        CryptoCLI exchange-volume ftx --save --output ftx_volume.json
+    """
+    from app.exchange_volume import get_exchange_volume_history, analyze_volume_patterns
+
+    # Get the exchange volume history data
+    volume_data = get_exchange_volume_history(
+        exchange_id=exchange_id,
+        days=days,
+        display=True,
+        save=save,
+        output=output
+    )
+
+    # Perform pattern analysis if requested
+    if analyze and volume_data:
+        analyze_volume_patterns(volume_data, exchange_id)
+
+
+@cli.command()
+@click.option('--limit', '-l', default=50, type=int,
+              help='Maximum number of exchanges to display (default: 50)')
+@click.option('--filter', '-f', type=str, default=None,
+              help='Filter exchanges by name, ID, or country')
+@click.option('--sort', '-s', type=click.Choice(['open_interest_btc', 'volume_24h', 'name']),
+              default='open_interest_btc', help='Sort exchanges by field')
+@click.option('--save', '-v', is_flag=True,
+              help='Save derivatives exchanges data to a JSON file')
+@click.option('--output', '-o', type=str, default=None,
+              help='Filename to save data to (requires --save)')
+def derivatives_exchanges(limit, filter, sort, save, output):
+    """
+    List derivatives exchanges with active trading.
+    
+    Retrieves and displays data about cryptocurrency derivatives exchanges
+    including open interest, trading volume, and number of supported assets.
+    
+    Examples:
+        CryptoCLI derivatives-exchanges
+        CryptoCLI derivatives-exchanges --limit 20
+        CryptoCLI derivatives-exchanges --filter binance
+        CryptoCLI derivatives-exchanges --sort volume_24h
+        CryptoCLI derivatives-exchanges --save
+        CryptoCLI derivatives-exchanges --save --output derivatives_data.json
+    """
+    from app.derivatives import get_derivatives_exchanges
+    
+    # Get derivatives exchanges data
+    get_derivatives_exchanges(
+        limit=limit,
+        display=True,
+        filter_by=filter,
+        sort_by=sort,
+        save=save,
+        output=output
+    )
+
+
+@cli.command()
+@click.argument('exchange_id', required=True)
+@click.option('--limit', '-l', default=100, type=int,
+              help='Maximum number of tickers to display (default: 100)')
+@click.option('--filter', '-f', type=str, default=None,
+              help='Filter tickers by base/target symbol')
+@click.option('--save', '-s', is_flag=True,
+              help='Save derivatives tickers data to a JSON file')
+@click.option('--output', '-o', type=str, default=None,
+              help='Filename to save data to (requires --save)')
+def derivatives_tickers(exchange_id, limit, filter, save, output):
+    """
+    Get tickers from a specific derivatives exchange.
+    
+    Retrieves and displays all derivatives contracts (tickers) from a specific
+    derivatives exchange, including price, volume, and open interest data.
+    
+    Examples:
+        CryptoCLI derivatives-tickers binance
+        CryptoCLI derivatives-tickers bitmex --limit 50
+        CryptoCLI derivatives-tickers deribit --filter btc
+        CryptoCLI derivatives-tickers bybit --save
+        CryptoCLI derivatives-tickers ftx --save --output ftx_futures.json
+    """
+    from app.derivatives import get_derivatives_exchange_tickers
+    
+    # Get derivatives tickers data
+    get_derivatives_exchange_tickers(
+        exchange_id=exchange_id,
+        limit=limit,
+        display=True,
+        filter_by=filter,
+        save=save,
+        output=output
+    )
+
+
+@cli.command()
+@click.option('--limit', '-l', default=100, type=int,
+              help='Maximum number of tickers to display (default: 100)')
+@click.option('--filter', '-f', type=str, default=None,
+              help='Filter tickers by symbol or exchange')
+@click.option('--save', '-s', is_flag=True,
+              help='Save all derivatives tickers data to a JSON file')
+@click.option('--output', '-o', type=str, default=None,
+              help='Filename to save data to (requires --save)')
+def all_derivatives_tickers(limit, filter, save, output):
+    """
+    Get tickers from all derivatives exchanges.
+    
+    Retrieves and displays derivatives contracts (tickers) from all derivatives
+    exchanges, aggregating them into a single view and sorted by trading volume.
+    
+    Examples:
+        CryptoCLI all-derivatives-tickers
+        CryptoCLI all-derivatives-tickers --limit 50
+        CryptoCLI all-derivatives-tickers --filter btc
+        CryptoCLI all-derivatives-tickers --filter binance
+        CryptoCLI all-derivatives-tickers --save
+        CryptoCLI all-derivatives-tickers --save --output all_futures.json
+    """
+    from app.derivatives import get_all_derivatives_tickers
+    
+    # Get all derivatives tickers data
+    get_all_derivatives_tickers(
+        limit=limit,
+        display=True,
+        filter_by=filter,
+        save=save,
+        output=output
+    )
 
 if __name__ == '__main__':
     cli()
