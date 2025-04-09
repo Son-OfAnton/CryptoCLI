@@ -33,7 +33,7 @@ class CoinGeckoAPI:
         self.last_request_time = 0
         # Wait at least 1.5s between requests to respect rate limits
         self.rate_limit_wait = 1.5
-        
+
         # Usage tracking properties
         self.usage_data = {
             "total_calls": 0,
@@ -59,7 +59,7 @@ class CoinGeckoAPI:
     def _extract_rate_limit_headers(self, headers: Dict[str, str]) -> Dict[str, Any]:
         """Extract rate limit information from response headers."""
         rate_limit_info = {}
-        
+
         # Common rate limit headers from APIs
         headers_to_extract = {
             "x-ratelimit-limit": "limit",
@@ -72,7 +72,7 @@ class CoinGeckoAPI:
             "x-cg-api-credits-used-month": "credits_used_month",
             "x-cg-api-credit-monthly-limit": "credits_monthly_limit"
         }
-        
+
         # Extract headers if they exist
         for header, key in headers_to_extract.items():
             if header in headers:
@@ -82,57 +82,57 @@ class CoinGeckoAPI:
                 except (ValueError, TypeError):
                     # If conversion fails, store as string
                     rate_limit_info[key] = headers[header]
-        
+
         return rate_limit_info
 
     def _update_usage_stats(self, endpoint: str, rate_limit_info: Dict[str, Any]):
         """Update API usage statistics."""
         today = datetime.now().strftime("%Y-%m-%d")
         current_month = datetime.now().strftime("%Y-%m")
-        
+
         # Update total call count
         self.usage_data["total_calls"] += 1
-        
+
         # Set first call date if not set
         if not self.usage_data["first_call_date"]:
             self.usage_data["first_call_date"] = today
-            
+
         # Update last call date
         self.usage_data["last_call_date"] = today
-        
+
         # Update calls today
         if "daily_calls" not in self.usage_data:
             self.usage_data["daily_calls"] = {}
-        
+
         if today not in self.usage_data["daily_calls"]:
             self.usage_data["daily_calls"][today] = 0
-            
+
         self.usage_data["daily_calls"][today] += 1
         self.usage_data["calls_today"] = self.usage_data["daily_calls"][today]
-        
+
         # Update monthly usage
         if current_month not in self.usage_data["monthly_usage"]:
             self.usage_data["monthly_usage"][current_month] = 0
-            
+
         self.usage_data["monthly_usage"][current_month] += 1
-        
+
         # Update endpoints called
         if endpoint not in self.usage_data["endpoints_called"]:
             self.usage_data["endpoints_called"][endpoint] = 0
-            
+
         self.usage_data["endpoints_called"][endpoint] += 1
-        
+
         # Update rate limit information
         if rate_limit_info:
             self.usage_data["rate_limit_info"] = rate_limit_info
-        
+
         # Save updated usage data
         self._save_usage_data()
 
     def _load_usage_data(self):
         """Load API usage statistics from file if it exists."""
         usage_file = os.path.expanduser("~/.coingecko_usage.json")
-        
+
         try:
             if os.path.exists(usage_file):
                 with open(usage_file, 'r') as f:
@@ -145,7 +145,7 @@ class CoinGeckoAPI:
     def _save_usage_data(self):
         """Save API usage statistics to file."""
         usage_file = os.path.expanduser("~/.coingecko_usage.json")
-        
+
         try:
             with open(usage_file, 'w') as f:
                 json.dump(self.usage_data, f, indent=4)
@@ -156,7 +156,7 @@ class CoinGeckoAPI:
     def get_usage_stats(self) -> Dict[str, Any]:
         """
         Get current API usage statistics.
-        
+
         Returns:
             Dict containing usage statistics
         """
@@ -178,11 +178,12 @@ class CoinGeckoAPI:
 
         try:
             response = self.session.get(url, params=params, timeout=10)
-            
+
             # Extract and store rate limit information
-            rate_limit_info = self._extract_rate_limit_headers(response.headers)
+            rate_limit_info = self._extract_rate_limit_headers(
+                response.headers)
             self._update_usage_stats(endpoint, rate_limit_info)
-            
+
             response.raise_for_status()  # Raise exception for 4XX/5XX responses
             return response.json()
         except requests.exceptions.RequestException as e:
@@ -299,7 +300,7 @@ class CoinGeckoAPI:
             Trending coins data
         """
         return self._make_request("search/trending")
-    
+
     def get_trending_nfts(self) -> Dict[str, List[Dict[str, Any]]]:
         """
         Get trending NFTs in the last 24 hours.
@@ -354,22 +355,22 @@ class CoinGeckoAPI:
             "days": days
         }
         return self._make_request(f"coins/{coin_id}/ohlc", params)
-    
+
     def get_token_by_contract(
-        self, 
-        contract_address: str, 
+        self,
+        contract_address: str,
         asset_platform: str = 'ethereum'
     ) -> Dict[str, Any]:
         """
         Get token data by contract address on a specific blockchain platform.
-        
+
         Args:
             contract_address: Contract address of the token
             asset_platform: Asset platform ID (e.g., 'ethereum', 'binance-smart-chain')
-            
+
         Returns:
             Token data
-            
+
         Raises:
             Exception: For API request errors
         """
@@ -381,25 +382,25 @@ class CoinGeckoAPI:
             "developer_data": "true",
             "sparkline": "false"
         }
-        
+
         return self._make_request(endpoint, params)
-    
+
     def get_asset_platforms(self) -> List[Dict[str, Any]]:
         """
         Get a list of all asset platforms (blockchains) supported by CoinGecko.
-        
+
         Returns:
             List of asset platform data
-            
+
         Raises:
             Exception: For API request errors
         """
         return self._make_request("asset_platforms")
-    
+
     def get_supported_vs_currencies(self) -> List[str]:
         """
         Get list of supported vs currencies (fiat currencies used for price conversions).
-        
+
         Returns:
             List of supported currency codes (e.g., 'usd', 'eur', 'btc', etc.)
         """
@@ -413,7 +414,7 @@ class CoinGeckoAPI:
             Global DeFi market data
         """
         return self._make_request("global/decentralized_finance_defi")
-    
+
     def get_companies_public_treasury(self, coin_id: str) -> Dict[str, Any]:
         """
         Get public companies holding a specific cryptocurrency in their treasury.
@@ -425,6 +426,137 @@ class CoinGeckoAPI:
             Public companies treasury data
         """
         return self._make_request(f"companies/public_treasury/{coin_id}")
+
+    def get_nft_collections(self, per_page: int = 100, page: int = 1, order: str = 'h24_volume_native_desc') -> List[Dict[str, Any]]:
+        """
+        Get a list of NFT collections with market data.
+
+        Args:
+            per_page: Number of results per page (max 250)
+            page: Page number
+            order: Sorting criteria (h24_volume_native_desc, floor_price_native_desc, market_cap_usd_desc, etc.)
+
+        Returns:
+            List of NFT collection data
+        """
+        params = {
+            'per_page': per_page,
+            'page': page,
+            'order': order
+        }
+
+        return self._make_request('nfts/list', params)
+
+    def get_nft_collection(self, id: str) -> Dict[str, Any]:
+        """
+        Get detailed information about a specific NFT collection.
+
+        Args:
+            id: Collection ID
+
+        Returns:
+            Dictionary containing NFT collection details
+        """
+        return self._make_request(f'nfts/{id}')
+
+    def get_nft_collection_price_history(self, id: str, vs_currency: str = 'usd', days: int = 30) -> List[List[float]]:
+        """
+        Get floor price history of an NFT collection.
+
+        Args:
+            id: Collection ID
+            vs_currency: Currency to get prices in
+            days: Number of days of price history to return (max 365)
+
+        Returns:
+            List of [timestamp, price] pairs
+        """
+        if days < 1 or days > 365:
+            raise ValueError("days must be between 1 and 365")
+
+        params = {
+            'vs_currency': vs_currency,
+            'days': days
+        }
+
+        return self._make_request(f'nfts/{id}/market_chart', params)
+
+    def get_nft_collection_market_chart(self, id: str, vs_currency: str = 'usd', days: int = 30, category: str = "floor_price") -> List[List[float]]:
+        """
+        Get historical market data for an NFT collection.
+
+        Args:
+            id: Collection ID
+            vs_currency: Currency to get prices in
+            days: Number of days of historical data to return (max 365)
+            category: Category of data ('floor_price', 'market_cap', or 'volume_24h')
+
+        Returns:
+            List of [timestamp, value] pairs
+        """
+        if days < 1 or days > 365:
+            raise ValueError("days must be between 1 and 365")
+
+        if category not in ['floor_price', 'market_cap', 'volume_24h']:
+            raise ValueError(
+                "category must be one of: 'floor_price', 'market_cap', 'volume_24h'")
+
+        params = {
+            'vs_currency': vs_currency,
+            'days': days,
+            'category': category
+        }
+
+        return self._make_request(f'nfts/{id}/market_chart', params)
+
+    def get_nft_collection_by_contract(self, contract_address: str, asset_platform: str = 'ethereum') -> Dict[str, Any]:
+        """
+        Get NFT collection details by contract address.
+
+        Args:
+            contract_address: Contract address of the NFT collection
+            asset_platform: Asset platform (blockchain) the collection is on
+
+        Returns:
+            Dictionary containing NFT collection details
+        """
+        # Validate contract address
+        if not contract_address.startswith('0x') or len(contract_address) != 42:
+            raise ValueError("Invalid contract address format")
+
+        params = {}
+
+        # The endpoint structure in CoinGecko API for NFTs by contract address
+        endpoint = f'nfts/{asset_platform}/contract/{contract_address}'
+
+        return self._make_request(endpoint, params)
+
+
+def get_nft_collection_marketplaces(self, id: str) -> Dict[str, Any]:
+    """
+    Get marketplace data for an NFT collection.
+
+    Args:
+        id: Collection ID
+
+    Returns:
+        Dictionary with marketplace data keyed by marketplace name
+    """
+    endpoint = f'nfts/{id}/marketplaces'
+    return self._make_request(endpoint)
+
+def get_nft_collection_marketplaces(self, id: str) -> Dict[str, Any]:
+    """
+    Get marketplace data for an NFT collection.
+    
+    Args:
+        id: Collection ID
+        
+    Returns:
+        Dictionary with marketplace data keyed by marketplace name
+    """
+    endpoint = f'nfts/{id}/marketplaces'
+    return self._make_request(endpoint)
 
 
 # Create a singleton instance for use throughout the app

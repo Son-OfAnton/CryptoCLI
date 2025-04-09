@@ -23,6 +23,7 @@ from app.gainers_losers import get_gainers_losers, TimePeriod
 from app.newly_listed import get_newly_listed_coins, display_new_coin_details, get_detailed_analysis
 import click
 from rich.console import Console
+from rich.table import Table
 import sys
 import os
 from dotenv import load_dotenv
@@ -768,15 +769,171 @@ def exchange_details(exchange_id, save, output):
 
 @cli.command()
 @click.argument('exchange_id')
-@click.option('--days', '-d', default=30, type=int,
-              help='Number of days of historical data to retrieve (default: 30)')
-@click.option('--analyze', '-a', is_flag=True,
-              help='Perform detailed analysis of volume patterns')
+@click.option('--from-date', '-f', type=str, required=True,
+              help='Start date in YYYY-MM-DD format')
+@click.option('--to-date', '-t', type=str, required=True,
+              help='End date in YYYY-MM-DD format')
+@click.option('--from-timestamp', type=int, 
+              help='Start date as UNIX timestamp (overrides --from-date if provided)')
+@click.option('--to-timestamp', type=int,
+              help='End date as UNIX timestamp (overrides --to-date if provided)')
 @click.option('--save', '-s', is_flag=True,
-              help='Save volume history data to a JSON file')
+              help='Save volume data to a JSON file (default)')
+@click.option('--format', '-f', type=click.Choice(['json', 'csv', 'both']),
+              default='json', help='Output file format(s)')
 @click.option('--output', '-o', type=str, default=None,
-              help='Filename to save data to (requires --save)')
-def exchange_volume(exchange_id, days, analyze, save, output):
+              help='Filename to save data to (without extension, requires --save)')
+@click.option('--output-dir', '-d', type=str, default=None,
+              help='Directory to save output files (requires --save)')
+@click.option('--analyze', '-a', is_flag=True,
+              help='Perform additional analysis on volume trends')
+@click.option('--export-all', '-e', is_flag=True,
+              help='Export to JSON, CSV, and create a summary report')
+def exchange_volume(exchange_id, from_date, to_date, from_timestamp, to_timestamp, 
+                   save, format, output, output_dir, analyze, export_all):
+    """
+    Get historical trading volume data in BTC for a specific exchange within a date range.
+    
+    Examples:
+        CryptoCLI exchange-volume binance --from-date 2023-01-01 --to-date 2023-01-31
+        CryptoCLI exchange-volume coinbase_pro --from-timestamp 1672531200 --to-timestamp 1675209600
+        CryptoCLI exchange-volume kraken --from-date 2023-01-01 --to-date 2023-01-31 --save
+        CryptoCLI exchange-volume binance --from-date 2023-01-01 --to-date 2023-01-31 --analyze
+        CryptoCLI exchange-volume binance --from-date 2023-01-01 --to-date 2023-01-31 --format csv
+        CryptoCLI exchange-volume binance --from-date 2023-01-01 --to-date 2023-01-31 --export-all
+    """
+    from app.exchange_volume import (
+        get_exchange_volume_history, 
+        save_exchange_volume_data,
+        convert_date_to_timestamp,
+        analyze_volume_trends,
+        export_volume_data_summary
+    )
+    
+    # Convert date strings to timestamps if needed
+    if from_timestamp is None:
+        from_timestamp = convert_date_to_timestamp(from_date)
+    
+    if to_timestamp is None:
+        to_timestamp = convert_date_to_timestamp(to_date)
+    
+    # Validate timestamps
+    if from_timestamp <= 0 or to_timestamp <= 0:
+        print_error("Invalid date format or timestamps.")
+        return
+    
+    if from_timestamp >= to_timestamp:
+        print_error("From date must be earlier than to date.")
+        return
+    
+    # Get volume data
+    volume_data = get_exchange_volume_history(
+        exchange_id=exchange_id,
+        from_timestamp=from_timestamp,
+        to_timestamp=to_timestamp,
+        display=True
+    )
+    
+    # Perform analysis if requested
+    if analyze and volume_data and volume_data.get("success", False):
+        analysis = analyze_volume_trends(volume_data)
+        
+        if "error" not in analysis:
+            # Add analysis to volume data for export
+            volume_data["trend_analysis"] = analysis
+            
+            # Display trend information
+            console.print("\n[bold cyan]Volume Trend Analysis[/bold cyan]")
+            
+            # Show trend direction with color
+            trend = analysis.get("trend_direction", "unknown")
+            if trend == "increasing":
+                trend_str = "[bold green]Increasing[/bold green]"
+            elif trend == "decreasing":
+                trend_str = "[bold red]Decreasing[/bold red]"
+            else:
+                trend_str = "[bold yellow]Stable[/bold yellow]"
+                
+            console.print(f"Overall Trend: {trend_str}")
+            console.print(f"Volume Volatility: {analysis.get('volatility', 0):.2f}%")
+            console.print(f"Average Daily Change: {analysis.get('mean_daily_change', 0):.2f}%")
+            
+            # Display day of week analysis
+            day_analysis = analysis.get("day_of_week_analysis", {})
+            
+            # Create a table for day of week analysis
+            day_table = Table(title="Volume by Day of Week")
+            day_table.add_column("Day", style="cyan")
+            day_table.add_column("Avg. Volume (BTC)", justify="right")
+            day_table.add_column("Relative to Average", justify="right")
+            
+            if day_analysis and "average_volumes" in day_analysis:
+                day_volumes = day_analysis["average_volumes"]
+                all_avg = sum(day_volumes.values()) / 7 if day_volumes else 0
+                
+                for day, volume in day_volumes.items():
+                    rel_to_avg = (volume / all_avg * 100) - 100 if all_avg > 0 else 0
+                    rel_style = "green" if rel_to_avg > 0 else "red" if rel_to_avg < 0 else "white"
+                    rel_sign = "+" if rel_to_avg > 0 else ""
+                    
+                    day_table.add_row(
+                        day,
+                        f"{volume:,.2f}",
+                        f"[{rel_style}]{rel_sign}{rel_to_avg:.2f}%[/{rel_style}]"
+                    )
+                
+                console.print(day_table)
+                
+                # Print highest and lowest volume days
+                console.print(f"Highest Volume: [green]{day_analysis.get('highest_volume_day', 'Unknown')}[/green]")
+                console.print(f"Lowest Volume: [red]{day_analysis.get('lowest_volume_day', 'Unknown')}[/red]")
+        else:
+            print_warning(f"Could not perform analysis: {analysis.get('error')}")
+    
+    # Save data if requested
+    if save and volume_data and volume_data.get("success", False):
+        if export_all:
+            # Export to all formats with summary
+            json_path, csv_path, summary_path = export_volume_data_summary(
+                volume_data, 
+                output_dir=output_dir
+            )
+            if json_path and csv_path and summary_path:
+                console.print("\n[bold green]Data exported successfully:[/bold green]")
+                console.print(f"JSON: {json_path}")
+                console.print(f"CSV: {csv_path}")
+                console.print(f"Summary: {summary_path}")
+        else:
+            # Export to single format
+            if format == 'both':
+                # Save as both JSON and CSV
+                json_output = output + '.json' if output else None
+                csv_output = output + '.csv' if output else None
+                
+                # If output directory is specified, join with filenames
+                if output_dir:
+                    if json_output:
+                        json_output = os.path.join(output_dir, json_output)
+                    if csv_output:
+                        csv_output = os.path.join(output_dir, csv_output)
+                
+                json_path = save_exchange_volume_data(volume_data, json_output, 'json')
+                csv_path = save_exchange_volume_data(volume_data, csv_output, 'csv')
+                
+                if json_path and csv_path:
+                    console.print("\n[bold green]Data saved to:[/bold green]")
+                    console.print(f"JSON: {json_path}")
+                    console.print(f"CSV: {csv_path}")
+            else:
+                # Save in the specified format
+                if output_dir and output:
+                    full_output = os.path.join(output_dir, output)
+                elif output_dir:
+                    full_output = output_dir  # Will generate default filename
+                else:
+                    full_output = output
+                
+                save_exchange_volume_data(volume_data, full_output, format)
     """
     Get historical trading volume data for a specific exchange.
 
@@ -795,7 +952,6 @@ def exchange_volume(exchange_id, days, analyze, save, output):
     # Get the exchange volume history data
     volume_data = get_exchange_volume_history(
         exchange_id=exchange_id,
-        days=days,
         display=True,
         save=save,
         output=output
@@ -820,10 +976,10 @@ def exchange_volume(exchange_id, days, analyze, save, output):
 def derivatives_exchanges(limit, filter, sort, save, output):
     """
     List derivatives exchanges with active trading.
-    
+
     Retrieves and displays data about cryptocurrency derivatives exchanges
     including open interest, trading volume, and number of supported assets.
-    
+
     Examples:
         CryptoCLI derivatives-exchanges
         CryptoCLI derivatives-exchanges --limit 20
@@ -833,7 +989,7 @@ def derivatives_exchanges(limit, filter, sort, save, output):
         CryptoCLI derivatives-exchanges --save --output derivatives_data.json
     """
     from app.derivatives import get_derivatives_exchanges
-    
+
     # Get derivatives exchanges data
     get_derivatives_exchanges(
         limit=limit,
@@ -858,10 +1014,10 @@ def derivatives_exchanges(limit, filter, sort, save, output):
 def derivatives_tickers(exchange_id, limit, filter, save, output):
     """
     Get tickers from a specific derivatives exchange.
-    
+
     Retrieves and displays all derivatives contracts (tickers) from a specific
     derivatives exchange, including price, volume, and open interest data.
-    
+
     Examples:
         CryptoCLI derivatives-tickers binance
         CryptoCLI derivatives-tickers bitmex --limit 50
@@ -870,7 +1026,7 @@ def derivatives_tickers(exchange_id, limit, filter, save, output):
         CryptoCLI derivatives-tickers ftx --save --output ftx_futures.json
     """
     from app.derivatives import get_derivatives_exchange_tickers
-    
+
     # Get derivatives tickers data
     get_derivatives_exchange_tickers(
         exchange_id=exchange_id,
@@ -894,10 +1050,10 @@ def derivatives_tickers(exchange_id, limit, filter, save, output):
 def all_derivatives_tickers(limit, filter, save, output):
     """
     Get tickers from all derivatives exchanges.
-    
+
     Retrieves and displays derivatives contracts (tickers) from all derivatives
     exchanges, aggregating them into a single view and sorted by trading volume.
-    
+
     Examples:
         CryptoCLI all-derivatives-tickers
         CryptoCLI all-derivatives-tickers --limit 50
@@ -907,7 +1063,7 @@ def all_derivatives_tickers(limit, filter, save, output):
         CryptoCLI all-derivatives-tickers --save --output all_futures.json
     """
     from app.derivatives import get_all_derivatives_tickers
-    
+
     # Get all derivatives tickers data
     get_all_derivatives_tickers(
         limit=limit,
@@ -916,6 +1072,243 @@ def all_derivatives_tickers(limit, filter, save, output):
         save=save,
         output=output
     )
+
+
+@cli.command()
+@click.option('--limit', '-l', type=int, default=100,
+              help='Number of collections to display (max 250)')
+@click.option('--currency', '-c', default='usd',
+              help='Currency to display prices in (e.g., usd, eth)')
+@click.option('--order', '-o',
+              type=click.Choice([
+                  'h24_volume_native_desc', 'h24_volume_native_asc',
+                  'floor_price_native_desc', 'floor_price_native_asc',
+                  'market_cap_native_desc', 'market_cap_native_asc',
+                  'market_cap_usd_desc', 'market_cap_usd_asc'
+              ]),
+              default='h24_volume_native_desc',
+              help='Sort order for collections')
+@click.option('--save', '-s', is_flag=True,
+              help='Save collections data to a JSON file')
+@click.option('--output', '-o', type=str, default=None,
+              help='Filename to save data to (requires --save)')
+def nft_collections(limit, currency, order, save, output):
+    """
+    List NFT collections with market data.
+
+    Displays NFT collections with their floor prices, market caps, volumes, and price changes.
+
+    Examples:
+        CryptoCLI nft-collections
+        CryptoCLI nft-collections --limit 50
+        CryptoCLI nft-collections --order floor_price_native_desc
+        CryptoCLI nft-collections --currency eth
+        CryptoCLI nft-collections --save --output nft_data.json
+    """
+    from app.nft_collections import get_nft_collections, save_nft_collections_data
+
+    # Get NFT collections data
+    collections_data = get_nft_collections(
+        limit=limit,
+        vs_currency=currency,
+        order=order,
+        display=True
+    )
+
+    # Save data if requested
+    if save and collections_data and collections_data.get("collections"):
+        save_nft_collections_data(collections_data, output)
+
+
+@cli.command()
+@click.argument('collection_id')
+@click.option('--currency', '-c', default='usd',
+              help='Currency to display prices in (e.g., usd, eth)')
+@click.option('--save', '-s', is_flag=True,
+              help='Save collection details to a JSON file')
+@click.option('--output', '-o', type=str, default=None,
+              help='Filename to save data to (requires --save)')
+def nft_collection(collection_id, currency, save, output):
+    """
+    Get detailed information about a specific NFT collection.
+
+    Displays detailed data for a single NFT collection including market data, price history,
+    statistics, and external links.
+
+    Examples:
+        CryptoCLI nft-collection cryptopunks
+        CryptoCLI nft-collection bored-ape-yacht-club --currency eth
+        CryptoCLI nft-collection doodles-official --save
+    """
+    from app.nft_collections import get_nft_collection_by_id, save_nft_collection_details
+
+    # Get NFT collection details
+    collection_data = get_nft_collection_by_id(
+        collection_id=collection_id,
+        vs_currency=currency,
+        display=True
+    )
+
+    # Save data if requested
+    if save and collection_data and collection_data.get("success", False):
+        save_nft_collection_details(collection_data, output)
+
+
+@cli.command()
+@click.argument('collection_id')
+@click.option('--days', '-d', type=int, default=30,
+              help='Number of days of historical data (max 365)')
+@click.option('--currency', '-c', default='usd',
+              help='Currency to display prices in (e.g., usd, eth)')
+@click.option('--save', '-s', is_flag=True,
+              help='Save historical data to a JSON file')
+@click.option('--output', '-o', type=str, default=None,
+              help='Filename to save data to (requires --save)')
+def nft_history(collection_id, days, currency, save, output):
+    """
+    Get historical market data for an NFT collection.
+
+    Displays floor price, market cap, and 24h volume history for a specific NFT collection
+    over a specified number of days.
+
+    Examples:
+        CryptoCLI nft-history bored-ape-yacht-club
+        CryptoCLI nft-history cryptopunks --days 90
+        CryptoCLI nft-history doodles-official --currency eth
+        CryptoCLI nft-history azuki --days 180 --save
+    """
+    from app.nft_collections import get_nft_collection_historical_data, save_nft_historical_data
+
+    # Get historical data
+    historical_data = get_nft_collection_historical_data(
+        collection_id=collection_id,
+        days=days,
+        vs_currency=currency,
+        display=True
+    )
+
+    # Save data if requested
+    if save and historical_data and historical_data.get("success", False):
+        save_nft_historical_data(historical_data, output)
+
+
+@cli.command()
+@click.argument('contract_address')
+@click.option('--platform', '-p', default='ethereum',
+              type=click.Choice(['ethereum', 'solana', 'polygon-pos', 'arbitrum-one',
+                                'optimistic-ethereum', 'binance-smart-chain', 'fantom', 'avalanche']),
+              help='Blockchain platform the NFT is deployed on')
+@click.option('--days', '-d', type=int, default=30,
+              help='Number of days of historical data (max 365)')
+@click.option('--currency', '-c', default='usd',
+              help='Currency to display prices in (e.g., usd, eth)')
+@click.option('--save', '-s', is_flag=True,
+              help='Save historical data to a JSON file')
+@click.option('--output', '-o', type=str, default=None,
+              help='Filename to save data to (requires --save)')
+def nft_contract_history(contract_address, platform, days, currency, save, output):
+    """
+    Get historical market data for an NFT collection by contract address.
+
+    Displays floor price, market cap, and 24h volume history for an NFT collection
+    identified by its contract address, over a specified number of days.
+
+    Examples:
+        CryptoCLI nft-contract-history 0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d
+        CryptoCLI nft-contract-history 0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d --days 90
+        CryptoCLI nft-contract-history 0x8a90cab2b38dba80c64b7734e58ee1db38b8992e --platform ethereum --currency eth
+        CryptoCLI nft-contract-history 0xed5af388653567af2f388e6224dc7c4b3241c544 --days 180 --save
+    """
+    from app.nft_collections import get_nft_historical_data_by_contract, save_nft_historical_data
+
+    # Get historical data by contract address
+    historical_data = get_nft_historical_data_by_contract(
+        contract_address=contract_address,
+        days=days,
+        asset_platform=platform,
+        vs_currency=currency,
+        display=True
+    )
+
+    # Save data if requested
+    if save and historical_data and historical_data.get("success", False):
+        save_nft_historical_data(historical_data, output)
+
+
+@cli.command()
+@click.argument('collection_id')
+@click.option('--currency', '-c', default='usd',
+              help='Currency to display prices in (e.g., usd, eth)')
+@click.option('--save', '-s', is_flag=True,
+              help='Save marketplace data to a JSON file')
+@click.option('--output', '-o', type=str, default=None,
+              help='Filename to save data to (requires --save)')
+def nft_marketplaces(collection_id, currency, save, output):
+    """
+    Get marketplace data for an NFT collection by collection ID.
+
+    Displays floor price and volume data across different NFT marketplaces
+    for a specific collection.
+
+    Examples:
+        CryptoCLI nft-marketplaces bored-ape-yacht-club
+        CryptoCLI nft-marketplaces cryptopunks --currency eth
+        CryptoCLI nft-marketplaces doodles-official --save
+    """
+    from app.nft_marketplaces import get_nft_marketplace_data, save_nft_marketplace_data
+
+    # Get marketplace data
+    marketplace_data = get_nft_marketplace_data(
+        collection_identifier=collection_id,
+        vs_currency=currency,
+        is_contract_address=False,
+        display=True
+    )
+
+    # Save data if requested
+    if save and marketplace_data and marketplace_data.get("success", False):
+        save_nft_marketplace_data(marketplace_data, output)
+
+
+@cli.command()
+@click.argument('contract_address')
+@click.option('--platform', '-p', default='ethereum',
+              type=click.Choice(['ethereum', 'solana', 'polygon-pos', 'arbitrum-one',
+                                'optimistic-ethereum', 'binance-smart-chain', 'fantom', 'avalanche']),
+              help='Blockchain platform the NFT is deployed on')
+@click.option('--currency', '-c', default='usd',
+              help='Currency to display prices in (e.g., usd, eth)')
+@click.option('--save', '-s', is_flag=True,
+              help='Save marketplace data to a JSON file')
+@click.option('--output', '-o', type=str, default=None,
+              help='Filename to save data to (requires --save)')
+def nft_contract_marketplaces(contract_address, platform, currency, save, output):
+    """
+    Get marketplace data for an NFT collection by contract address.
+
+    Displays floor price and volume data across different NFT marketplaces
+    for a specific collection identified by its contract address.
+
+    Examples:
+        CryptoCLI nft-contract-marketplaces 0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d
+        CryptoCLI nft-contract-marketplaces 0x8a90cab2b38dba80c64b7734e58ee1db38b8992e --currency eth
+        CryptoCLI nft-contract-marketplaces 0xed5af388653567af2f388e6224dc7c4b3241c544 --save
+    """
+    from app.nft_marketplaces import get_nft_marketplace_data, save_nft_marketplace_data
+
+    # Get marketplace data by contract address
+    marketplace_data = get_nft_marketplace_data(
+        collection_identifier=contract_address,
+        vs_currency=currency,
+        is_contract_address=True,
+        asset_platform=platform,
+        display=True
+    )
+
+    # Save data if requested
+    if save and marketplace_data and marketplace_data.get("success", False):
+        save_nft_marketplace_data(marketplace_data, output)
+
 
 if __name__ == '__main__':
     cli()
